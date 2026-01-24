@@ -165,7 +165,7 @@
                     </select>
                 </div>
                 <div class="card">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Saldos Restantes</label>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Saldos Restantes (Máx 25 d.)</label>
                     <div id="statsContainer" class="space-y-4"></div>
                 </div>
                 <div class="card">
@@ -211,7 +211,6 @@
 
     <script>
         // --- CONFIGURACIÓN EMAILJS ---
-        // Debes reemplazar estos valores con los de tu cuenta de EmailJS
         const EMAIL_CONFIG = {
             serviceID: 'TU_SERVICE_ID', 
             templateID: 'TU_TEMPLATE_ID',
@@ -224,29 +223,32 @@
         })();
 
         async function notificarPorCorreo(accion, detalle) {
-            console.log("Intentando enviar notificación por correo...");
+            console.log("Intentando enviar notificación...");
             const templateParams = {
                 to_name: "Administrador",
                 subject: `Modificación Vacaciones 2026: ${accion}`,
-                message: `Se ha realizado una modificación en el sistema de vacaciones:\n\nAcción: ${accion}\nDetalle: ${detalle}\nFecha del sistema: ${new Date().toLocaleString()}`,
+                message: `Modificación en sistema:\n\nAcción: ${accion}\nDetalle: ${detalle}\nFecha: ${new Date().toLocaleString()}`,
                 reply_to: "no-reply@vacacionesmetal.com"
             };
 
-            // Solo intentará enviar si las IDs no son las de ejemplo
             if(EMAIL_CONFIG.serviceID !== 'TU_SERVICE_ID') {
                 try {
                     await emailjs.send(EMAIL_CONFIG.serviceID, EMAIL_CONFIG.templateID, templateParams);
-                    console.log("Correo enviado con éxito.");
-                } catch (error) {
-                    console.error("Error al enviar el correo:", error);
-                }
-            } else {
-                console.warn("Configuración de EmailJS pendiente. No se envió el correo real.");
+                } catch (error) { console.error("Error email:", error); }
             }
         }
 
         // --- DATA ESTATICA ---
-        const FESTIVOS_2026 = ["2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-16", "2026-11-01", "2026-12-06", "2026-12-08", "2026-12-25"];
+        // Se añaden 2026-12-24 y 2026-12-31 como festivos
+        const FESTIVOS_2026 = [
+            "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
+            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-16", 
+            "2026-11-01", "2026-12-06", "2026-12-08", "2026-12-24", // Añadido
+            "2026-12-25", "2026-12-31" // Añadido
+        ];
+        
+        const MAX_DIAS_VACACIONES = 25;
+
         const EMPLEADOS = [
             { nombre: "Igor Santamaría", grupo: "G1", color: "#1e40af" }, 
             { nombre: "Adrian", grupo: "G1", color: "#3b82f6" },          
@@ -305,8 +307,8 @@
             EMPLEADOS.forEach(emp => {
                 const misVacas = vacaciones.filter(v => v.title === emp.nombre);
                 const diasGastados = misVacas.reduce((total, v) => total + contarLaborables(v.start, v.end), 0);
-                const restantes = 22 - diasGastados;
-                const porcentaje = (diasGastados / 22) * 100;
+                const restantes = MAX_DIAS_VACACIONES - diasGastados;
+                const porcentaje = (diasGastados / MAX_DIAS_VACACIONES) * 100;
 
                 stats.innerHTML += `
                     <div>
@@ -335,7 +337,7 @@
                         <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp.grupo}</span></td>
                         <td>${v.start}</td><td>${v.end}</td><td class="font-semibold text-blue-600">${dias} d</td>
                         <td>
-                            <button onclick="borrarVacacion('${v.id}')" class="text-red-400 hover:text-red-600">Eliminar</button>
+                            <button onclick="borrarVacacion('${v.id}')" class="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase">Eliminar</button>
                         </td>
                     </tr>`;
             });
@@ -366,7 +368,7 @@
                 multiMonthMaxColumns: 4,
                 headerToolbar: false,
                 events: [
-                    ...FESTIVOS_2026.map(f => ({ title: 'F', start: f, allDay: true, display: 'background' })),
+                    ...FESTIVOS_2026.map(f => ({ title: 'F', start: f, allDay: true, display: 'background', backgroundColor: '#fee2e2' })),
                     ...vacaciones
                 ],
                 datesSet: () => document.getElementById('currentDateDisplay').innerText = calendar.view.title,
@@ -378,8 +380,8 @@
                     if (dias === 0) { calendar.unselect(); return; }
 
                     const gastados = vacaciones.filter(v => v.title === nombre).reduce((t,v) => t + contarLaborables(v.start, v.end), 0);
-                    if (gastados + dias > 22) {
-                        alert(`Límite de 22 días excedido para ${nombre}`);
+                    if (gastados + dias > MAX_DIAS_VACACIONES) {
+                        alert(`Límite de ${MAX_DIAS_VACACIONES} días excedido para ${nombre}`);
                         calendar.unselect(); return;
                     }
 
@@ -402,7 +404,9 @@
                     actualizarUI();
                     calendar.unselect();
                 },
-                eventClick: (info) => borrarVacacion(info.event.id)
+                eventClick: (info) => {
+                    if (info.event.display !== 'background') borrarVacacion(info.event.id);
+                }
             });
             calendar.render();
         }
