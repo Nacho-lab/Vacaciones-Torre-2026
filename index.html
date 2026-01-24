@@ -10,6 +10,9 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Librería para envío de emails -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <style>
         :root {
@@ -37,7 +40,7 @@
 
         /* Contenedor Principal */
         .app-container {
-            display: none; /* Oculto hasta login */
+            display: none; 
             grid-template-columns: var(--sidebar-w) 1fr;
             min-height: 100vh;
         }
@@ -46,7 +49,6 @@
             .app-container { grid-template-columns: 1fr; }
         }
 
-        /* Estilos Sidebar */
         .sidebar {
             background: #ffffff;
             border-right: 1px solid #e2e8f0;
@@ -57,7 +59,6 @@
             overflow-y: auto;
         }
 
-        /* Estilos Calendario */
         .calendar-wrapper {
             padding: 1.5rem;
             max-width: 1400px;
@@ -67,14 +68,13 @@
 
         #calendar {
             background: white;
-            padding: 1rem;
+            padding: 1.5rem;
             border-radius: 1rem;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
             border: 1px solid #e2e8f0;
             margin-bottom: 2rem;
         }
 
-        /* Tablas */
         .summary-table {
             width: 100%;
             background: white;
@@ -98,11 +98,13 @@
             border-top: 1px solid #f1f5f9;
         }
 
-        /* FullCalendar Tweaks */
-        .fc { --fc-border-color: #f1f5f9; font-size: 0.75rem; }
         .fc .fc-toolbar-title { font-weight: 700; color: #0f172a; font-size: 1.25rem !important; }
         .fc-multimonth-header { background: #f8fafc; padding: 6px !important; border-radius: 4px; }
+        .fc-multimonth-title { font-weight: 700 !important; color: #1e293b !important; text-transform: capitalize; }
+        .fc-daygrid-day-number { font-size: 0.8rem; color: #64748b; }
         
+        .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 3px !important; }
+
         .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
         
@@ -111,6 +113,8 @@
             font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
         }
         .btn-primary:hover { background: #334155; }
+
+        .active-view { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
     </style>
 </head>
 <body>
@@ -132,15 +136,12 @@
                     <input type="password" id="password" class="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" required>
                 </div>
                 <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Entrar al Sistema</button>
-                <p id="loginError" class="text-red-500 text-xs text-center hidden">Credenciales incorrectas. Intente de nuevo.</p>
+                <p id="loginError" class="text-red-500 text-xs text-center hidden">Credenciales incorrectas.</p>
             </form>
         </div>
     </div>
 
-    <!-- Contenido Principal -->
     <div class="app-container" id="mainApp">
-        
-        <!-- Sidebar -->
         <aside class="sidebar space-y-6">
             <div class="mb-8">
                 <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Vacaciones<span class="text-blue-600">2026</span></h1>
@@ -163,88 +164,89 @@
                         </optgroup>
                     </select>
                 </div>
-
                 <div class="card">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Saldos Restantes</label>
                     <div id="statsContainer" class="space-y-4"></div>
                 </div>
-
                 <div class="card">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Leyenda</label>
                     <div id="legendContainer" class="space-y-2 text-xs"></div>
                 </div>
             </div>
 
-            <button id="btnExport" class="btn-primary w-full mt-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                Generar Reporte PDF
-            </button>
-            
+            <button id="btnExport" class="btn-primary w-full mt-4">Generar PDF</button>
             <button id="btnLogout" class="w-full text-slate-400 text-xs font-bold uppercase hover:text-red-500 transition-colors mt-2">Cerrar Sesión</button>
         </aside>
 
-        <!-- Main Content -->
         <main class="calendar-wrapper">
             <header class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-                    <span id="currentYearDisplay" class="font-bold text-slate-700 px-4">2026</span>
-                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
+                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg">←</button>
+                    <span id="currentDateDisplay" class="font-bold text-slate-700 px-4 min-w-[100px] text-center">2026</span>
+                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg">→</button>
                 </div>
-                
                 <div class="flex gap-2">
-                    <button id="btnViewYear" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 shadow-sm transition">Anual</button>
-                    <button id="btnViewMonth" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50 shadow-sm transition">Mensual</button>
+                    <button id="btnViewYear" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold active-view">Visión Anual</button>
+                    <button id="btnViewMonth" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold">Mensual</button>
                 </div>
             </header>
 
-            <!-- Calendario -->
             <div id='calendar'></div>
 
-            <!-- Tabla Resumen -->
             <section class="mt-8">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
-                    Tabla Resumen de Periodos
-                </h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Tabla Resumen</h3>
                 <div class="summary-table overflow-x-auto">
                     <table>
                         <thead>
                             <tr>
-                                <th>Empleado</th>
-                                <th>Grupo</th>
-                                <th>Desde</th>
-                                <th>Hasta</th>
-                                <th>Días Lab.</th>
-                                <th>Acción</th>
+                                <th>Empleado</th><th>Grupo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Acción</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody">
-                            <!-- JS inyectará filas aquí -->
-                        </tbody>
+                        <tbody id="tableBody"></tbody>
                     </table>
                 </div>
             </section>
-            
-            <footer class="mt-12 text-center text-slate-400 text-xs pb-8">
-                © 2026 Metalúrgica Torrelavega - Panel de Control Administrativo
-            </footer>
         </main>
-
     </div>
 
     <script>
-        // --- DATA ESTATICA ---
-        const FESTIVOS_2026 = [
-            "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
-            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-16", 
-            "2026-11-01", "2026-12-06", "2026-12-08", "2026-12-25"
-        ];
+        // --- CONFIGURACIÓN EMAILJS ---
+        // Debes reemplazar estos valores con los de tu cuenta de EmailJS
+        const EMAIL_CONFIG = {
+            serviceID: 'TU_SERVICE_ID', 
+            templateID: 'TU_TEMPLATE_ID',
+            publicKey: 'TU_PUBLIC_KEY',
+            targetEmail: 'igalan@adarsa.com'
+        };
 
+        (function(){
+            emailjs.init(EMAIL_CONFIG.publicKey);
+        })();
+
+        async function notificarPorCorreo(accion, detalle) {
+            console.log("Intentando enviar notificación por correo...");
+            const templateParams = {
+                to_name: "Administrador",
+                subject: `Modificación Vacaciones 2026: ${accion}`,
+                message: `Se ha realizado una modificación en el sistema de vacaciones:\n\nAcción: ${accion}\nDetalle: ${detalle}\nFecha del sistema: ${new Date().toLocaleString()}`,
+                reply_to: "no-reply@vacacionesmetal.com"
+            };
+
+            // Solo intentará enviar si las IDs no son las de ejemplo
+            if(EMAIL_CONFIG.serviceID !== 'TU_SERVICE_ID') {
+                try {
+                    await emailjs.send(EMAIL_CONFIG.serviceID, EMAIL_CONFIG.templateID, templateParams);
+                    console.log("Correo enviado con éxito.");
+                } catch (error) {
+                    console.error("Error al enviar el correo:", error);
+                }
+            } else {
+                console.warn("Configuración de EmailJS pendiente. No se envió el correo real.");
+            }
+        }
+
+        // --- DATA ESTATICA ---
+        const FESTIVOS_2026 = ["2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-16", "2026-11-01", "2026-12-06", "2026-12-08", "2026-12-25"];
         const EMPLEADOS = [
             { nombre: "Igor Santamaría", grupo: "G1", color: "#1e40af" }, 
             { nombre: "Adrian", grupo: "G1", color: "#3b82f6" },          
@@ -257,7 +259,6 @@
         let vacaciones = JSON.parse(localStorage.getItem('vacaciones_2026')) || [];
         let calendar;
 
-        // --- MANEJO DE LOGIN ---
         document.getElementById('loginForm').onsubmit = (e) => {
             e.preventDefault();
             const u = document.getElementById('username').value;
@@ -279,12 +280,8 @@
             actualizarUI();
         }
 
-        document.getElementById('btnLogout').onclick = () => {
-            sessionStorage.clear();
-            location.reload();
-        };
+        document.getElementById('btnLogout').onclick = () => { sessionStorage.clear(); location.reload(); };
 
-        // --- LOGICA DE NEGOCIO ---
         const esLaborable = (f) => {
             const d = new Date(f);
             const s = d.toISOString().split('T')[0];
@@ -301,10 +298,8 @@
             const stats = document.getElementById('statsContainer');
             const legend = document.getElementById('legendContainer');
             const tableBody = document.getElementById('tableBody');
-            
             stats.innerHTML = ''; legend.innerHTML = ''; tableBody.innerHTML = '';
             
-            // Ordenar vacaciones para la tabla por fecha de inicio
             const vacacionesSorted = [...vacaciones].sort((a,b) => new Date(a.start) - new Date(b.start));
 
             EMPLEADOS.forEach(emp => {
@@ -331,7 +326,6 @@
                     </div>`;
             });
 
-            // Llenar tabla resumen
             vacacionesSorted.forEach(v => {
                 const emp = EMPLEADOS.find(e => e.nombre === v.title);
                 const dias = contarLaborables(v.start, v.end);
@@ -339,23 +333,23 @@
                     <tr class="text-xs hover:bg-slate-50 transition-colors">
                         <td class="font-bold text-slate-700">${v.title}</td>
                         <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp.grupo}</span></td>
-                        <td>${v.start}</td>
-                        <td>${v.end}</td>
-                        <td class="font-semibold text-blue-600">${dias} d</td>
+                        <td>${v.start}</td><td>${v.end}</td><td class="font-semibold text-blue-600">${dias} d</td>
                         <td>
-                            <button onclick="borrarVacacion('${v.id}')" class="text-red-400 hover:text-red-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                            </button>
+                            <button onclick="borrarVacacion('${v.id}')" class="text-red-400 hover:text-red-600">Eliminar</button>
                         </td>
                     </tr>`;
             });
         }
 
         window.borrarVacacion = (id) => {
-            if(confirm('¿Eliminar este periodo?')) {
+            const vData = vacaciones.find(v => v.id === id);
+            if(vData && confirm(`¿Eliminar las vacaciones de ${vData.title}?`)) {
                 vacaciones = vacaciones.filter(v => v.id !== id);
                 localStorage.setItem('vacaciones_2026', JSON.stringify(vacaciones));
-                calendar.getEventById(id).remove();
+                const event = calendar.getEventById(id);
+                if (event) event.remove();
+                
+                notificarPorCorreo("ELIMINACIÓN", `${vData.title}: ${vData.start} al ${vData.end}`);
                 actualizarUI();
             }
         };
@@ -363,7 +357,7 @@
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridYear',
+                initialView: 'multiMonthYear',
                 initialDate: '2026-01-01',
                 locale: 'es',
                 firstDay: 1,
@@ -375,6 +369,7 @@
                     ...FESTIVOS_2026.map(f => ({ title: 'F', start: f, allDay: true, display: 'background' })),
                     ...vacaciones
                 ],
+                datesSet: () => document.getElementById('currentDateDisplay').innerText = calendar.view.title,
                 select: function(info) {
                     const nombre = document.getElementById('empSelector').value;
                     const empData = EMPLEADOS.find(e => e.nombre === nombre);
@@ -384,7 +379,7 @@
 
                     const gastados = vacaciones.filter(v => v.title === nombre).reduce((t,v) => t + contarLaborables(v.start, v.end), 0);
                     if (gastados + dias > 22) {
-                        alert(`Límite excedido para ${nombre}`);
+                        alert(`Límite de 22 días excedido para ${nombre}`);
                         calendar.unselect(); return;
                     }
 
@@ -394,7 +389,7 @@
                     });
 
                     if (conflicto) {
-                        alert(`Conflicto Grupo ${empData.grupo}`);
+                        alert(`Conflicto de grupo detectado (Grupo ${empData.grupo}).`);
                         calendar.unselect(); return;
                     }
 
@@ -402,6 +397,8 @@
                     vacaciones.push(nuevo);
                     localStorage.setItem('vacaciones_2026', JSON.stringify(vacaciones));
                     calendar.addEvent(nuevo);
+                    
+                    notificarPorCorreo("NUEVA ASIGNACIÓN", `${nombre}: ${info.startStr} al ${info.endStr} (${dias} días)`);
                     actualizarUI();
                     calendar.unselect();
                 },
@@ -410,20 +407,11 @@
             calendar.render();
         }
 
-        // Controles Navegación
         document.getElementById('btnNext').onclick = () => calendar.next();
         document.getElementById('btnPrev').onclick = () => calendar.prev();
-        document.getElementById('btnViewYear').onclick = () => calendar.changeView('dayGridYear');
-        document.getElementById('btnViewMonth').onclick = () => calendar.changeView('dayGridMonth');
-
-        document.getElementById('btnExport').onclick = function() {
-            const element = document.querySelector('.calendar-wrapper');
-            html2pdf().from(element).set({
-                margin: 10, filename: 'Resumen_Vacaciones_2026.pdf',
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-            }).save();
-        };
+        document.getElementById('btnViewYear').onclick = function() { calendar.changeView('multiMonthYear'); this.classList.add('active-view'); document.getElementById('btnViewMonth').classList.remove('active-view'); };
+        document.getElementById('btnViewMonth').onclick = function() { calendar.changeView('dayGridMonth'); this.classList.add('active-view'); document.getElementById('btnViewYear').classList.remove('active-view'); };
+        document.getElementById('btnExport').onclick = () => html2pdf().from(document.querySelector('.calendar-wrapper')).save();
     </script>
 </body>
 </html>
