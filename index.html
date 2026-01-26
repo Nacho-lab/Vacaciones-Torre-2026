@@ -27,7 +27,6 @@
             color: #1e293b;
         }
 
-        /* Pantalla de Login */
         #loginScreen {
             display: flex;
             align-items: center;
@@ -38,7 +37,6 @@
             z-index: 9999;
         }
 
-        /* Contenedor Principal */
         .app-container {
             display: none; 
             grid-template-columns: var(--sidebar-w) 1fr;
@@ -103,7 +101,7 @@
         .fc-multimonth-title { font-weight: 700 !important; color: #1e293b !important; text-transform: capitalize; }
         .fc-daygrid-day-number { font-size: 0.8rem; color: #64748b; }
         
-        .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 3px !important; }
+        .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 3px !important; cursor: pointer; }
 
         .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
         .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
@@ -115,6 +113,17 @@
         .btn-primary:hover { background: #334155; }
 
         .active-view { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
+
+        /* Modal Custom */
+        #selectionModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -141,11 +150,34 @@
         </div>
     </div>
 
+    <!-- Modal para Selección de Tipo de Día -->
+    <div id="selectionModal">
+        <div class="bg-white p-6 rounded-xl shadow-xl w-80 space-y-4">
+            <h3 class="font-bold text-slate-800 text-lg">Tipo de Jornada</h3>
+            <p class="text-xs text-slate-500">Selecciona cómo quieres imputar estos días:</p>
+            <div class="grid grid-cols-1 gap-2">
+                <button onclick="confirmarSeleccion('completo')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center group">
+                    <span>Día Completo</span>
+                    <span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold">1.0</span>
+                </button>
+                <button onclick="confirmarSeleccion('mañana')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center group">
+                    <span>Mañana (M)</span>
+                    <span class="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded font-bold">0.5</span>
+                </button>
+                <button onclick="confirmarSeleccion('tarde')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center group">
+                    <span>Tarde (T)</span>
+                    <span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded font-bold">0.5</span>
+                </button>
+            </div>
+            <button onclick="cerrarModal()" class="w-full py-2 text-slate-400 text-xs font-bold uppercase hover:text-slate-600">Cancelar</button>
+        </div>
+    </div>
+
     <div class="app-container" id="mainApp">
         <aside class="sidebar space-y-6">
             <div class="mb-8">
                 <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Vacaciones<span class="text-blue-600">2026</span></h1>
-                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Metal Torrelavega</p>
+                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Central de Torrelavega</p>
             </div>
 
             <div class="space-y-4">
@@ -199,7 +231,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Empleado</th><th>Grupo</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Acción</th>
+                                <th>Empleado</th><th>Grupo</th><th>Desde</th><th>Hasta</th><th>Tipo</th><th>Días</th><th>Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
@@ -223,7 +255,6 @@
         })();
 
         async function notificarPorCorreo(accion, detalle) {
-            console.log("Intentando enviar notificación...");
             const templateParams = {
                 to_name: "Administrador",
                 subject: `Modificación Vacaciones 2026: ${accion}`,
@@ -239,12 +270,11 @@
         }
 
         // --- DATA ESTATICA ---
-        // Se añaden 2026-12-24 y 2026-12-31 como festivos
         const FESTIVOS_2026 = [
             "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
-            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-16", 
-            "2026-11-01", "2026-12-06", "2026-12-08", "2026-12-24", // Añadido
-            "2026-12-25", "2026-12-31" // Añadido
+            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-15", // Añadido 15 de Septiembre
+            "2026-09-16", "2026-11-01", "2026-12-06", "2026-12-08", 
+            "2026-12-24", "2026-12-25", "2026-12-31" 
         ];
         
         const MAX_DIAS_VACACIONES = 25;
@@ -260,7 +290,9 @@
 
         let vacaciones = JSON.parse(localStorage.getItem('vacaciones_2026')) || [];
         let calendar;
+        let tempSelection = null;
 
+        // --- MANEJO DE LOGIN ---
         document.getElementById('loginForm').onsubmit = (e) => {
             e.preventDefault();
             const u = document.getElementById('username').value;
@@ -284,15 +316,16 @@
 
         document.getElementById('btnLogout').onclick = () => { sessionStorage.clear(); location.reload(); };
 
+        // --- LÓGICA DE DÍAS ---
         const esLaborable = (f) => {
             const d = new Date(f);
             const s = d.toISOString().split('T')[0];
             return d.getDay() !== 0 && d.getDay() !== 6 && !FESTIVOS_2026.includes(s);
         };
 
-        const contarLaborables = (s, e) => {
+        const contarLaborables = (s, e, factor = 1) => {
             let c = 0; let cur = new Date(s); let stop = new Date(e);
-            while (cur < stop) { if (esLaborable(cur)) c++; cur.setDate(cur.getDate() + 1); }
+            while (cur < stop) { if (esLaborable(cur)) c += factor; cur.setDate(cur.getDate() + 1); }
             return c;
         };
 
@@ -306,7 +339,7 @@
 
             EMPLEADOS.forEach(emp => {
                 const misVacas = vacaciones.filter(v => v.title === emp.nombre);
-                const diasGastados = misVacas.reduce((total, v) => total + contarLaborables(v.start, v.end), 0);
+                const diasGastados = misVacas.reduce((total, v) => total + v.valorTotal, 0);
                 const restantes = MAX_DIAS_VACACIONES - diasGastados;
                 const porcentaje = (diasGastados / MAX_DIAS_VACACIONES) * 100;
 
@@ -314,7 +347,7 @@
                     <div>
                         <div class="flex justify-between text-[11px] mb-1">
                             <span class="font-bold text-slate-700">${emp.nombre}</span>
-                            <span class="${restantes < 5 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes} r.</span>
+                            <span class="${restantes < 5 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes.toFixed(1)} r.</span>
                         </div>
                         <div class="w-full bg-slate-100 rounded-full h-1.5">
                             <div class="h-1.5 rounded-full transition-all duration-700" style="width: ${Math.min(porcentaje, 100)}%; background-color: ${emp.color}"></div>
@@ -330,12 +363,13 @@
 
             vacacionesSorted.forEach(v => {
                 const emp = EMPLEADOS.find(e => e.nombre === v.title);
-                const dias = contarLaborables(v.start, v.end);
                 tableBody.innerHTML += `
                     <tr class="text-xs hover:bg-slate-50 transition-colors">
                         <td class="font-bold text-slate-700">${v.title}</td>
                         <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp.grupo}</span></td>
-                        <td>${v.start}</td><td>${v.end}</td><td class="font-semibold text-blue-600">${dias} d</td>
+                        <td>${v.start}</td><td>${v.end}</td>
+                        <td><span class="capitalize text-[10px] font-medium text-slate-400">${v.tipo || 'Completo'}</span></td>
+                        <td class="font-semibold text-blue-600">${v.valorTotal.toFixed(1)} d</td>
                         <td>
                             <button onclick="borrarVacacion('${v.id}')" class="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase">Eliminar</button>
                         </td>
@@ -351,11 +385,66 @@
                 const event = calendar.getEventById(id);
                 if (event) event.remove();
                 
-                notificarPorCorreo("ELIMINACIÓN", `${vData.title}: ${vData.start} al ${vData.end}`);
+                notificarPorCorreo("ELIMINACIÓN", `${vData.title}: ${vData.start} al ${vData.end} (${vData.valorTotal}d)`);
                 actualizarUI();
             }
         };
 
+        // --- MANEJO DEL MODAL ---
+        function confirmarSeleccion(tipo) {
+            if(!tempSelection) return;
+            
+            const { info, empData, nombre } = tempSelection;
+            let factor = (tipo === 'completo') ? 1 : 0.5;
+            let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
+            const diasLaborables = contarLaborables(info.start, info.end, factor);
+
+            const gastados = vacaciones.filter(v => v.title === nombre).reduce((t,v) => t + v.valorTotal, 0);
+            
+            if (gastados + diasLaborables > MAX_DIAS_VACACIONES) {
+                alert(`Límite de ${MAX_DIAS_VACACIONES} días excedido.`);
+                cerrarModal();
+                return;
+            }
+
+            const conflicto = vacaciones.some(v => {
+                const vEmp = EMPLEADOS.find(e => e.nombre === v.title);
+                return vEmp.grupo === empData.grupo && info.start < new Date(v.end) && info.end > new Date(v.start);
+            });
+
+            if (conflicto) {
+                alert(`Conflicto de grupo detectado (Grupo ${empData.grupo}).`);
+                cerrarModal();
+                return;
+            }
+
+            const nuevo = { 
+                id: Date.now().toString(), 
+                title: nombre + labelSuffix, 
+                start: info.startStr, 
+                end: info.endStr, 
+                color: empData.color, 
+                allDay: true,
+                tipo: tipo,
+                valorTotal: diasLaborables
+            };
+
+            vacaciones.push(nuevo);
+            localStorage.setItem('vacaciones_2026', JSON.stringify(vacaciones));
+            calendar.addEvent(nuevo);
+            
+            notificarPorCorreo("NUEVA ASIGNACIÓN", `${nombre} [${tipo}]: ${info.startStr} al ${info.endStr} (${diasLaborables} días)`);
+            actualizarUI();
+            cerrarModal();
+        }
+
+        function cerrarModal() {
+            document.getElementById('selectionModal').style.display = 'none';
+            tempSelection = null;
+            calendar.unselect();
+        }
+
+        // --- CALENDARIO ---
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
@@ -375,34 +464,13 @@
                 select: function(info) {
                     const nombre = document.getElementById('empSelector').value;
                     const empData = EMPLEADOS.find(e => e.nombre === nombre);
-                    const dias = contarLaborables(info.start, info.end);
+                    const laborablesBase = contarLaborables(info.start, info.end, 1);
 
-                    if (dias === 0) { calendar.unselect(); return; }
+                    if (laborablesBase === 0) { calendar.unselect(); return; }
 
-                    const gastados = vacaciones.filter(v => v.title === nombre).reduce((t,v) => t + contarLaborables(v.start, v.end), 0);
-                    if (gastados + dias > MAX_DIAS_VACACIONES) {
-                        alert(`Límite de ${MAX_DIAS_VACACIONES} días excedido para ${nombre}`);
-                        calendar.unselect(); return;
-                    }
-
-                    const conflicto = vacaciones.some(v => {
-                        const vEmp = EMPLEADOS.find(e => e.nombre === v.title);
-                        return vEmp.grupo === empData.grupo && info.start < new Date(v.end) && info.end > new Date(v.start);
-                    });
-
-                    if (conflicto) {
-                        alert(`Conflicto de grupo detectado (Grupo ${empData.grupo}).`);
-                        calendar.unselect(); return;
-                    }
-
-                    const nuevo = { id: Date.now().toString(), title: nombre, start: info.startStr, end: info.endStr, color: empData.color, allDay: true };
-                    vacaciones.push(nuevo);
-                    localStorage.setItem('vacaciones_2026', JSON.stringify(vacaciones));
-                    calendar.addEvent(nuevo);
-                    
-                    notificarPorCorreo("NUEVA ASIGNACIÓN", `${nombre}: ${info.startStr} al ${info.endStr} (${dias} días)`);
-                    actualizarUI();
-                    calendar.unselect();
+                    // Guardamos la info y abrimos modal
+                    tempSelection = { info, empData, nombre };
+                    document.getElementById('selectionModal').style.display = 'flex';
                 },
                 eventClick: (info) => {
                     if (info.event.display !== 'background') borrarVacacion(info.event.id);
