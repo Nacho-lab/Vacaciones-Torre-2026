@@ -442,6 +442,8 @@
             calendar.addEvent(nuevo);
             
             notificarPorCorreo("NUEVA ASIGNACIÓN", `${nombre} [${tipo}]: ${info.startStr} al ${info.endStr} (${diasLaborables} días)`);
+            
+            // Actualizar la interfaz y CERRAR el modal
             actualizarUI();
             cerrarModal();
         }
