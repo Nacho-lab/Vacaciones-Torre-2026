@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -320,6 +320,7 @@
         const esLaborable = (f) => {
             const d = new Date(f);
             const s = d.toISOString().split('T')[0];
+            // Corregimos la lógica: Si es fin de semana o festivo, no es laborable.
             return d.getDay() !== 0 && d.getDay() !== 6 && !FESTIVOS_2026.includes(s);
         };
 
@@ -407,16 +408,12 @@
                 return;
             }
 
-            // MODIFICACIÓN: Permitir que el mismo empleado ocupe el mismo día varias veces
-            // (Útil para pedir Mañana y Tarde por separado el mismo día)
             const conflicto = vacaciones.some(v => {
                 const vEmp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
                 const esMismoEmpleado = v.title.startsWith(nombre);
                 
-                // Si es el MISMO empleado, ignoramos el conflicto (se permite solapamiento)
                 if (esMismoEmpleado) return false;
 
-                // Si es OTRO empleado del mismo grupo, comprobamos el solapamiento de fechas
                 return vEmp.grupo === empData.grupo && 
                        info.start < new Date(v.end) && 
                        info.end > new Date(v.start);
@@ -475,9 +472,13 @@
                 select: function(info) {
                     const nombre = document.getElementById('empSelector').value;
                     const empData = EMPLEADOS.find(e => e.nombre === nombre);
+                    
+                    // Comprobamos si el periodo seleccionado contiene al menos un día laborable
                     const laborablesBase = contarLaborables(info.start, info.end, 1);
-
-                    if (laborablesBase === 0) { calendar.unselect(); return; }
+                    if (laborablesBase === 0) {
+                        calendar.unselect();
+                        return;
+                    }
 
                     tempSelection = { info, empData, nombre };
                     document.getElementById('selectionModal').style.display = 'flex';
