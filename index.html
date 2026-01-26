@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -407,15 +407,17 @@
                 return;
             }
 
-            // CORRECCIÓN: Filtrar para no detectar conflicto consigo mismo en días consecutivos
+            // MODIFICACIÓN: Permitir que el mismo empleado ocupe el mismo día varias veces
+            // (Útil para pedir Mañana y Tarde por separado el mismo día)
             const conflicto = vacaciones.some(v => {
                 const vEmp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
-                // Solo alertar si el conflicto es con OTRO empleado del mismo grupo
-                // Ignoramos el conflicto si el nombre del empleado es el mismo
                 const esMismoEmpleado = v.title.startsWith(nombre);
                 
-                return !esMismoEmpleado && 
-                       vEmp.grupo === empData.grupo && 
+                // Si es el MISMO empleado, ignoramos el conflicto (se permite solapamiento)
+                if (esMismoEmpleado) return false;
+
+                // Si es OTRO empleado del mismo grupo, comprobamos el solapamiento de fechas
+                return vEmp.grupo === empData.grupo && 
                        info.start < new Date(v.end) && 
                        info.end > new Date(v.start);
             });
@@ -443,7 +445,6 @@
             
             notificarPorCorreo("NUEVA ASIGNACIÓN", `${nombre} [${tipo}]: ${info.startStr} al ${info.endStr} (${diasLaborables} días)`);
             
-            // Actualizar la interfaz y CERRAR el modal
             actualizarUI();
             cerrarModal();
         }
