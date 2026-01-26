@@ -272,7 +272,7 @@
         // --- DATA ESTATICA ---
         const FESTIVOS_2026 = [
             "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
-            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-15", // Añadido 15 de Septiembre
+            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-15", 
             "2026-09-16", "2026-11-01", "2026-12-06", "2026-12-08", 
             "2026-12-24", "2026-12-25", "2026-12-31" 
         ];
@@ -338,7 +338,7 @@
             const vacacionesSorted = [...vacaciones].sort((a,b) => new Date(a.start) - new Date(b.start));
 
             EMPLEADOS.forEach(emp => {
-                const misVacas = vacaciones.filter(v => v.title === emp.nombre);
+                const misVacas = vacaciones.filter(v => v.title.startsWith(emp.nombre));
                 const diasGastados = misVacas.reduce((total, v) => total + v.valorTotal, 0);
                 const restantes = MAX_DIAS_VACACIONES - diasGastados;
                 const porcentaje = (diasGastados / MAX_DIAS_VACACIONES) * 100;
@@ -362,11 +362,11 @@
             });
 
             vacacionesSorted.forEach(v => {
-                const emp = EMPLEADOS.find(e => e.nombre === v.title);
+                const emp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
                 tableBody.innerHTML += `
                     <tr class="text-xs hover:bg-slate-50 transition-colors">
                         <td class="font-bold text-slate-700">${v.title}</td>
-                        <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp.grupo}</span></td>
+                        <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp ? emp.grupo : '-'}</span></td>
                         <td>${v.start}</td><td>${v.end}</td>
                         <td><span class="capitalize text-[10px] font-medium text-slate-400">${v.tipo || 'Completo'}</span></td>
                         <td class="font-semibold text-blue-600">${v.valorTotal.toFixed(1)} d</td>
@@ -399,7 +399,7 @@
             let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
             const diasLaborables = contarLaborables(info.start, info.end, factor);
 
-            const gastados = vacaciones.filter(v => v.title === nombre).reduce((t,v) => t + v.valorTotal, 0);
+            const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
             
             if (gastados + diasLaborables > MAX_DIAS_VACACIONES) {
                 alert(`Límite de ${MAX_DIAS_VACACIONES} días excedido.`);
@@ -407,13 +407,21 @@
                 return;
             }
 
+            // CORRECCIÓN: Filtrar para no detectar conflicto consigo mismo en días consecutivos
             const conflicto = vacaciones.some(v => {
-                const vEmp = EMPLEADOS.find(e => e.nombre === v.title);
-                return vEmp.grupo === empData.grupo && info.start < new Date(v.end) && info.end > new Date(v.start);
+                const vEmp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
+                // Solo alertar si el conflicto es con OTRO empleado del mismo grupo
+                // Ignoramos el conflicto si el nombre del empleado es el mismo
+                const esMismoEmpleado = v.title.startsWith(nombre);
+                
+                return !esMismoEmpleado && 
+                       vEmp.grupo === empData.grupo && 
+                       info.start < new Date(v.end) && 
+                       info.end > new Date(v.start);
             });
 
             if (conflicto) {
-                alert(`Conflicto de grupo detectado (Grupo ${empData.grupo}).`);
+                alert(`Conflicto de grupo detectado (Grupo ${empData.grupo} ocupado por otro compañero).`);
                 cerrarModal();
                 return;
             }
@@ -468,7 +476,6 @@
 
                     if (laborablesBase === 0) { calendar.unselect(); return; }
 
-                    // Guardamos la info y abrimos modal
                     tempSelection = { info, empData, nombre };
                     document.getElementById('selectionModal').style.display = 'flex';
                 },
