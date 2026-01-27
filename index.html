@@ -324,28 +324,49 @@
         </main>
     </div>
 
-    <!-- Indicador de Sincronización Nube -->
+    <!-- Indicador de Sincronización -->
     <div id="syncIndicator">
         <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-orange-400"></span>
-        <span id="syncText">Conectando...</span>
+        <span id="syncText">Configurando Firebase...</span>
     </div>
 
     <!-- Firebase y Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // ==========================================================
+        // CONFIGURACIÓN PARA GITHUB / PRODUCCIÓN
+        // ==========================================================
+        const manualFirebaseConfig = {
+            apiKey: "AIzaSyB3yRAv83hjwy_6jRqGzj2AzZ-V2iQ4iy0",
+            authDomain: "vacaciones-torrelavega.firebaseapp.com",
+            projectId: "vacaciones-torrelavega",
+            storageBucket: "vacaciones-torrelavega.firebasestorage.app",
+            messagingSenderId: "77778108267",
+            appId: "1:77778108267:web:e942576bb82be5c3bf562e",
+            measurementId: "G-36DTZV323K"
+        };
+
+        const firebaseConfig = (typeof __firebase_config !== 'undefined') 
+            ? JSON.parse(__firebase_config) 
+            : manualFirebaseConfig;
+            
+        const appId = (typeof __app_id !== 'undefined') ? __app_id : 'mi-app-vacaciones-metal';
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // ==========================================================
 
         let currentUser = null;
         let vacaciones = [];
         let calendar = null;
         let tempSelection = null;
+        let unsubVacations = null;
+        let unsubHistory = null;
 
         const FESTIVOS_2026 = [
             "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
@@ -385,7 +406,7 @@
         };
 
         window.confirmarSeleccion = async (tipo) => {
-            if(!tempSelection) return;
+            if(!tempSelection || !currentUser) return;
             const { info, empData, nombre } = tempSelection;
             let factor = (tipo === 'completo') ? 1 : 0.5;
             let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
@@ -393,7 +414,7 @@
 
             const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
             if (gastados + diasLaborables > MAX_DIAS_VACACIONES) { 
-                showNotification(`Este empleado no tiene suficientes días restantes.`); 
+                alert(`Este empleado no tiene suficientes días restantes.`); 
                 window.cerrarModal(); return; 
             }
 
@@ -411,9 +432,6 @@
             await saveVacation(nuevo);
             window.cerrarModal();
         };
-
-        // --- HELPERS ---
-        const showNotification = (msg) => { alert(msg); };
 
         const setSyncStatus = (type, text) => {
             const dot = document.getElementById('syncStatusDot');
@@ -437,14 +455,19 @@
             return c;
         };
 
-        // --- ACCIONES ---
+        // RUTAS CRÍTICAS (RULE 1)
+        const getVacationsPath = () => collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
+        const getHistoryPath = () => collection(db, 'artifacts', appId, 'public', 'data', 'history');
+
         async function saveVacation(v) {
             if(!currentUser) return;
             setSyncStatus('syncing', 'Guardando...');
             try {
+                // RULE 1: Ruta exacta
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', v.id), v);
                 await logActivity('ASIGNACIÓN', `${v.title}: ${v.start} al ${v.end} (${v.valorTotal}d)`);
             } catch (e) {
+                console.error("Save Error:", e);
                 setSyncStatus('error', 'Error al guardar');
             }
         }
@@ -460,12 +483,14 @@
                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', vId));
                     await logActivity('ELIMINACIÓN', `${vData.title}: del ${vData.start} al ${vData.end}`);
                 } catch (e) {
+                    console.error("Delete Error:", e);
                     setSyncStatus('error', 'Error al eliminar');
                 }
             }
         }
 
         async function logActivity(accion, detalle) {
+            if(!currentUser) return;
             const logId = Date.now().toString();
             try {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', logId), {
@@ -476,7 +501,6 @@
             } catch (e) {}
         }
 
-        // --- RENDERERS ---
         function actualizarUI() {
             const stats = document.getElementById('statsContainer');
             const legend = document.getElementById('legendContainer');
@@ -487,7 +511,7 @@
             const vacacionesSorted = [...vacaciones].sort((a,b) => new Date(a.start) - new Date(b.start));
 
             EMPLEADOS.forEach(emp => {
-                const misVacas = vacaciones.filter(v => v.title.startsWith(emp.nombre));
+                const misVacas = vacaciones.filter(v => v.title && v.title.startsWith(emp.nombre));
                 const diasGastados = misVacas.reduce((total, v) => total + v.valorTotal, 0);
                 const restantes = MAX_DIAS_VACACIONES - diasGastados;
                 const porcentaje = (diasGastados / MAX_DIAS_VACACIONES) * 100;
@@ -511,15 +535,15 @@
             });
 
             vacacionesSorted.forEach(v => {
-                const emp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
+                const emp = EMPLEADOS.find(e => v.title && v.title.startsWith(e.nombre));
                 const row = document.createElement('tr');
                 row.className = "text-xs hover:bg-slate-50 transition-colors";
                 row.innerHTML = `
-                    <td class="font-bold text-slate-700 p-3">${v.title}</td>
+                    <td class="font-bold text-slate-700 p-3">${v.title || 'S/N'}</td>
                     <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp ? emp.grupo : '-'}</span></td>
                     <td>${v.start}</td><td>${v.end}</td>
                     <td><span class="capitalize text-[10px] font-medium text-slate-400">${v.tipo || 'Completo'}</span></td>
-                    <td class="font-semibold text-blue-600">${v.valorTotal.toFixed(1)} d</td>
+                    <td class="font-semibold text-blue-600">${(v.valorTotal || 0).toFixed(1)} d</td>
                     <td>
                         <button class="delete-action text-red-400 hover:text-red-600 text-[10px] font-bold uppercase p-1">Eliminar</button>
                     </td>
@@ -549,7 +573,7 @@
 
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
-            if (!calendarEl) return;
+            if (!calendarEl || calendar) return; // Evitar doble renderizado
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'multiMonthYear',
                 initialDate: '2026-01-01',
@@ -576,43 +600,39 @@
                 }
             });
             calendar.render();
-            // Inyectar eventos iniciales si existen
             vacaciones.forEach(v => calendar.addEvent(v));
         }
 
-        // --- INICIALIZACIÓN ---
+        // RULE 3: Auth Before Queries
         const startSync = () => {
-            const vCol = collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
-            onSnapshot(vCol, (snap) => {
+            if (!currentUser) return;
+
+            // Limpiar suscripciones previas si existen
+            if (unsubVacations) unsubVacations();
+            if (unsubHistory) unsubHistory();
+
+            unsubVacations = onSnapshot(getVacationsPath(), (snap) => {
                 vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                 if (calendar) {
                     calendar.getEvents().forEach(e => { if(e.display !== 'background') e.remove(); });
                     vacaciones.forEach(v => calendar.addEvent(v));
                 }
                 actualizarUI();
-                setSyncStatus('online', 'Sincronizado');
-            }, () => setSyncStatus('error', 'Error de red'));
+                setSyncStatus('online', 'En línea (Sincronizado)');
+            }, (error) => {
+                console.error("Firestore Error (Vacations):", error);
+                setSyncStatus('error', 'Error de permisos de lectura');
+            });
 
-            const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
-            onSnapshot(hCol, (snap) => {
+            unsubHistory = onSnapshot(getHistoryPath(), (snap) => {
                 const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp);
                 renderHistorico(history);
+            }, (error) => {
+                console.error("Firestore Error (History):", error);
             });
         };
 
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                console.error("Auth error", e);
-            }
-        };
-
-        // Listeners de Login
+        // Listeners de UI
         document.getElementById('loginForm').onsubmit = (e) => {
             e.preventDefault();
             const u = document.getElementById('username').value;
@@ -632,29 +652,26 @@
             location.reload();
         };
 
-        // Navegación Calendario
         document.getElementById('btnNext').onclick = () => calendar && calendar.next();
         document.getElementById('btnPrev').onclick = () => calendar && calendar.prev();
         document.getElementById('btnViewYear').onclick = function() { 
             if(!calendar) return;
             calendar.changeView('multiMonthYear'); 
-            this.classList.add('active-view'); this.classList.remove('text-slate-500');
+            this.classList.add('active-view');
             document.getElementById('btnViewMonth').classList.remove('active-view');
-            document.getElementById('btnViewMonth').classList.add('text-slate-500');
         };
         document.getElementById('btnViewMonth').onclick = function() { 
             if(!calendar) return;
             calendar.changeView('dayGridMonth'); 
-            this.classList.add('active-view'); this.classList.remove('text-slate-500');
+            this.classList.add('active-view');
             document.getElementById('btnViewYear').classList.remove('active-view');
-            document.getElementById('btnViewYear').classList.add('text-slate-500');
         };
 
         document.getElementById('btnExport').onclick = () => {
             const element = document.querySelector('.calendar-wrapper');
             const opt = { 
                 margin: 0.5, 
-                filename: 'Vacaciones_2026.pdf', 
+                filename: 'Vacaciones_Metal_2026.pdf', 
                 image: { type: 'jpeg', quality: 0.98 }, 
                 html2canvas: { scale: 2 }, 
                 jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' } 
@@ -662,7 +679,21 @@
             html2pdf().set(opt).from(element).save();
         };
 
-        // Arranque
+        // RULE 3 - CICLO DE VIDA DE AUTH (CRÍTICO)
+        const initFirebase = async () => {
+            setSyncStatus('syncing', 'Autenticando...');
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Auth Error:", e);
+                setSyncStatus('error', 'Error al conectar con el servidor');
+            }
+        };
+
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -670,12 +701,18 @@
                 if(sessionStorage.getItem('isLogged') === 'true') {
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'grid';
-                    setTimeout(renderCalendar, 100);
+                    setTimeout(renderCalendar, 200);
                 }
+            } else {
+                currentUser = null;
+                setSyncStatus('offline', 'Desconectado');
             }
         });
 
-        initAuth();
+        // Ejecución inicial
+        window.onload = () => {
+            initFirebase();
+        };
     </script>
 </body>
 </html>
