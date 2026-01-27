@@ -11,9 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Librería para envío de emails -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
     <style>
         :root {
             --bg-page: #f8fafc;
@@ -114,24 +111,45 @@
         }
         .btn-primary:hover { background: #334155; }
 
+        .btn-outline {
+            background: transparent; border: 1px solid #e2e8f0; color: #475569; padding: 0.6rem 1rem; border-radius: 0.5rem;
+            font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        }
+        .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+
         .active-view { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
 
-        /* Estilos Historial */
-        #historyContainer {
-            max-height: 200px;
-            overflow-y: auto;
-            font-size: 11px;
-        }
-        .history-item {
-            padding: 8px;
-            border-bottom: 1px solid #f1f5f9;
+        /* Panel Historial lateral (Drawer) */
+        #historyDrawer {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -10px 0 25px -5px rgba(0,0,0,0.1);
+            z-index: 10001;
+            transition: right 0.3s ease-in-out;
             display: flex;
             flex-direction: column;
-            gap: 2px;
         }
-        .history-item:last-child { border-bottom: none; }
+        #historyDrawer.open { right: 0; }
+        
+        #historyOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: none;
+        }
 
-        /* Modal Custom */
+        .history-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s;
+        }
+        .history-item:hover { background: #f8fafc; }
+
         #selectionModal {
             display: none;
             position: fixed;
@@ -140,6 +158,22 @@
             z-index: 10000;
             align-items: center;
             justify-content: center;
+        }
+
+        #syncIndicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 99px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            z-index: 100;
         }
     </style>
 </head>
@@ -167,26 +201,43 @@
         </div>
     </div>
 
-    <!-- Modal para Selección de Tipo de Día -->
+    <!-- Modal de Selección de Jornada -->
     <div id="selectionModal">
         <div class="bg-white p-6 rounded-xl shadow-xl w-80 space-y-4">
             <h3 class="font-bold text-slate-800 text-lg">Tipo de Jornada</h3>
             <p class="text-xs text-slate-500">Selecciona cómo quieres imputar estos días:</p>
             <div class="grid grid-cols-1 gap-2">
-                <button onclick="confirmarSeleccion('completo')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center group">
+                <button onclick="window.confirmarSeleccion('completo')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center">
                     <span>Día Completo</span>
                     <span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold">1.0</span>
                 </button>
-                <button onclick="confirmarSeleccion('mañana')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center group">
+                <button onclick="window.confirmarSeleccion('mañana')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center">
                     <span>Mañana (M)</span>
                     <span class="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded font-bold">0.5</span>
                 </button>
-                <button onclick="confirmarSeleccion('tarde')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center group">
+                <button onclick="window.confirmarSeleccion('tarde')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center">
                     <span>Tarde (T)</span>
                     <span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded font-bold">0.5</span>
                 </button>
             </div>
-            <button onclick="cerrarModal()" class="w-full py-2 text-slate-400 text-xs font-bold uppercase hover:text-slate-600">Cancelar</button>
+            <button onclick="window.cerrarModal()" class="w-full py-2 text-slate-400 text-xs font-bold uppercase hover:text-slate-600">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- Historial Lateral (Drawer) -->
+    <div id="historyOverlay" onclick="window.toggleHistory(false)"></div>
+    <div id="historyDrawer">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="text-xl font-bold text-slate-800">Historial de Cambios</h2>
+            <button onclick="window.toggleHistory(false)" class="text-slate-400 hover:text-slate-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="historyList" class="flex-1 overflow-y-auto">
+            <!-- Items de historial cargados dinámicamente -->
+        </div>
+        <div class="p-4 bg-slate-50 border-t border-slate-100">
+            <p class="text-[10px] text-slate-400 text-center uppercase font-bold tracking-wider">Registro centralizado en la nube</p>
         </div>
     </div>
 
@@ -200,7 +251,7 @@
             <div class="flex-1 space-y-4 overflow-y-auto pr-2">
                 <div class="card">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Empleado Activo</label>
-                    <select id="empSelector" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none">
+                    <select id="empSelector" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
                         <optgroup label="Grupo 1 (Taller)">
                             <option value="Igor Santamaría">Igor Santamaría</option>
                             <option value="Adrian">Adrian</option>
@@ -213,46 +264,52 @@
                         </optgroup>
                     </select>
                 </div>
+
                 <div class="card">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Saldos Restantes (Máx 25 d.)</label>
                     <div id="statsContainer" class="space-y-4"></div>
                 </div>
-                <!-- Sección de Histórico -->
-                <div class="card">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Histórico de Cambios</label>
-                    <div id="historyContainer" class="bg-slate-50 rounded-lg border border-slate-100">
-                        <p class="text-center py-4 text-slate-400 italic">Sin actividad reciente</p>
-                    </div>
-                </div>
+
+                <button onclick="window.toggleHistory(true)" class="btn-outline w-full group">
+                    <svg class="group-hover:rotate-12 transition-transform" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-9-9 8.95 8.95 0 0 1 5.9 2.2L21 8M21 3v5h-5"/></svg>
+                    Ver Historial de Cambios
+                </button>
+
                 <div class="card">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Leyenda</label>
                     <div id="legendContainer" class="space-y-2 text-xs"></div>
                 </div>
             </div>
 
-            <div class="pt-4 border-t border-slate-100">
-                <button id="btnExport" class="btn-primary w-full">Generar PDF</button>
-                <button id="btnLogout" class="w-full text-slate-400 text-xs font-bold uppercase hover:text-red-500 transition-colors mt-2">Cerrar Sesión</button>
+            <div class="pt-4 border-t border-slate-100 space-y-2">
+                <button id="btnExport" class="btn-primary w-full shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Generar PDF
+                </button>
+                <button id="btnLogout" class="w-full text-slate-400 text-[10px] font-bold uppercase hover:text-red-500 transition-colors py-2">Cerrar Sesión</button>
             </div>
         </aside>
 
         <main class="calendar-wrapper">
             <header class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg">←</button>
+                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">←</button>
                     <span id="currentDateDisplay" class="font-bold text-slate-700 px-4 min-w-[100px] text-center">2026</span>
-                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg">→</button>
+                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">→</button>
                 </div>
-                <div class="flex gap-2">
-                    <button id="btnViewYear" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold active-view">Visión Anual</button>
-                    <button id="btnViewMonth" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold">Mensual</button>
+                <div class="flex gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
+                    <button id="btnViewYear" class="px-4 py-2 rounded-lg text-sm font-semibold active-view transition-all">Anual</button>
+                    <button id="btnViewMonth" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-all">Mensual</button>
                 </div>
             </header>
 
             <div id='calendar'></div>
 
             <section class="mt-8">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Tabla Resumen</h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                    Tabla Resumen de Asignaciones
+                </h3>
                 <div class="summary-table overflow-x-auto">
                     <table>
                         <thead>
@@ -267,76 +324,34 @@
         </main>
     </div>
 
-    <script>
-        // --- CONFIGURACIÓN EMAILJS ---
-        const EMAIL_CONFIG = {
-            serviceID: 'TU_SERVICE_ID', 
-            templateID: 'TU_TEMPLATE_ID',
-            publicKey: 'TU_PUBLIC_KEY',
-            targetEmail: 'igalan@adarsa.com'
-        };
+    <!-- Indicador de Sincronización Nube -->
+    <div id="syncIndicator">
+        <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-orange-400"></span>
+        <span id="syncText">Conectando...</span>
+    </div>
 
-        (function(){
-            emailjs.init(EMAIL_CONFIG.publicKey);
-        })();
+    <!-- Firebase y Lógica -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        async function notificarPorCorreo(accion, detalle) {
-            const templateParams = {
-                to_name: "Administrador",
-                subject: `Modificación Vacaciones 2026: ${accion}`,
-                message: `Modificación en sistema:\n\nAcción: ${accion}\nDetalle: ${detalle}\nFecha: ${new Date().toLocaleString()}`,
-                reply_to: "no-reply@vacacionesmetal.com"
-            };
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-            // Guardar en histórico local
-            registrarEnHistorico(accion, detalle);
+        let currentUser = null;
+        let vacaciones = [];
+        let calendar = null;
+        let tempSelection = null;
 
-            if(EMAIL_CONFIG.serviceID !== 'TU_SERVICE_ID') {
-                try {
-                    await emailjs.send(EMAIL_CONFIG.serviceID, EMAIL_CONFIG.templateID, templateParams);
-                } catch (error) { console.error("Error email:", error); }
-            }
-        }
-
-        function registrarEnHistorico(accion, detalle) {
-            let historico = JSON.parse(localStorage.getItem('historico_vacaciones_2026')) || [];
-            historico.unshift({
-                fecha: new Date().toLocaleString(),
-                accion: accion,
-                detalle: detalle
-            });
-            // Mantener solo los últimos 50 registros
-            if (historico.length > 50) historico.pop();
-            localStorage.setItem('historico_vacaciones_2026', JSON.stringify(historico));
-            renderHistorico();
-        }
-
-        function renderHistorico() {
-            const container = document.getElementById('historyContainer');
-            const historico = JSON.parse(localStorage.getItem('historico_vacaciones_2026')) || [];
-            
-            if (historico.length === 0) {
-                container.innerHTML = '<p class="text-center py-4 text-slate-400 italic">Sin actividad reciente</p>';
-                return;
-            }
-
-            container.innerHTML = historico.map(item => `
-                <div class="history-item">
-                    <div class="flex justify-between items-start">
-                        <span class="font-bold uppercase ${item.accion === 'ELIMINACIÓN' ? 'text-red-500' : 'text-blue-600'}">${item.accion}</span>
-                        <span class="text-[9px] text-slate-400">${item.fecha}</span>
-                    </div>
-                    <div class="text-slate-600 leading-tight">${item.detalle}</div>
-                </div>
-            `).join('');
-        }
-
-        // --- DATA ESTATICA ---
         const FESTIVOS_2026 = [
             "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
             "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-15", 
             "2026-09-16", "2026-11-01", "2026-12-06", "2026-12-08", 
-            "2026-12-24", "2026-12-25", "2026-12-31" 
+            "2026-12-24", "2026-12-25", "2026-12-31", "2026-09-17" 
         ];
         
         const MAX_DIAS_VACACIONES = 25;
@@ -350,36 +365,66 @@
             { nombre: "Jorge Barreda", grupo: "G2", color: "#34d399" }     
         ];
 
-        let vacaciones = JSON.parse(localStorage.getItem('vacaciones_2026')) || [];
-        let calendar;
-        let tempSelection = null;
-
-        // --- MANEJO DE LOGIN ---
-        document.getElementById('loginForm').onsubmit = (e) => {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            if(u === 'admin' && p === 'metal2026') {
-                sessionStorage.setItem('isLogged', 'true');
-                iniciarApp();
+        // --- FUNCIONES GLOBALES ---
+        window.toggleHistory = (open) => {
+            const drawer = document.getElementById('historyDrawer');
+            const overlay = document.getElementById('historyOverlay');
+            if(open) {
+                drawer.classList.add('open');
+                overlay.style.display = 'block';
             } else {
-                document.getElementById('loginError').classList.remove('hidden');
+                drawer.classList.remove('open');
+                overlay.style.display = 'none';
             }
         };
 
-        if(sessionStorage.getItem('isLogged') === 'true') iniciarApp();
+        window.cerrarModal = () => {
+            document.getElementById('selectionModal').style.display = 'none';
+            tempSelection = null;
+            if (calendar) calendar.unselect();
+        };
 
-        function iniciarApp() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'grid';
-            renderCalendar();
-            actualizarUI();
-            renderHistorico();
-        }
+        window.confirmarSeleccion = async (tipo) => {
+            if(!tempSelection) return;
+            const { info, empData, nombre } = tempSelection;
+            let factor = (tipo === 'completo') ? 1 : 0.5;
+            let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
+            const diasLaborables = contarLaborables(info.start, info.end, factor);
 
-        document.getElementById('btnLogout').onclick = () => { sessionStorage.clear(); location.reload(); };
+            const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
+            if (gastados + diasLaborables > MAX_DIAS_VACACIONES) { 
+                showNotification(`Este empleado no tiene suficientes días restantes.`); 
+                window.cerrarModal(); return; 
+            }
 
-        // --- LÓGICA DE DÍAS ---
+            const nuevo = { 
+                id: Date.now().toString(), 
+                title: nombre + labelSuffix, 
+                start: info.startStr, 
+                end: info.endStr, 
+                color: empData.color, 
+                allDay: true,
+                tipo: tipo,
+                valorTotal: diasLaborables
+            };
+
+            await saveVacation(nuevo);
+            window.cerrarModal();
+        };
+
+        // --- HELPERS ---
+        const showNotification = (msg) => { alert(msg); };
+
+        const setSyncStatus = (type, text) => {
+            const dot = document.getElementById('syncStatusDot');
+            const label = document.getElementById('syncText');
+            if (!dot || !label) return;
+            label.innerText = text;
+            if(type === 'online') dot.className = "w-2 h-2 rounded-full bg-green-500";
+            else if(type === 'error') dot.className = "w-2 h-2 rounded-full bg-red-500";
+            else dot.className = "w-2 h-2 rounded-full bg-orange-400 animate-pulse";
+        };
+
         const esLaborable = (f) => {
             const d = new Date(f);
             const s = d.toISOString().split('T')[0];
@@ -392,12 +437,53 @@
             return c;
         };
 
+        // --- ACCIONES ---
+        async function saveVacation(v) {
+            if(!currentUser) return;
+            setSyncStatus('syncing', 'Guardando...');
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', v.id), v);
+                await logActivity('ASIGNACIÓN', `${v.title}: ${v.start} al ${v.end} (${v.valorTotal}d)`);
+            } catch (e) {
+                setSyncStatus('error', 'Error al guardar');
+            }
+        }
+
+        async function deleteVacation(vId) {
+            if(!currentUser) return;
+            const vData = vacaciones.find(v => v.id === vId);
+            if(!vData) return;
+            
+            if(confirm(`¿Deseas eliminar las vacaciones de ${vData.title}?`)) {
+                setSyncStatus('syncing', 'Eliminando...');
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', vId));
+                    await logActivity('ELIMINACIÓN', `${vData.title}: del ${vData.start} al ${vData.end}`);
+                } catch (e) {
+                    setSyncStatus('error', 'Error al eliminar');
+                }
+            }
+        }
+
+        async function logActivity(accion, detalle) {
+            const logId = Date.now().toString();
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', logId), {
+                    accion, detalle, 
+                    timestamp: Date.now(),
+                    fecha: new Date().toLocaleString()
+                });
+            } catch (e) {}
+        }
+
+        // --- RENDERERS ---
         function actualizarUI() {
             const stats = document.getElementById('statsContainer');
             const legend = document.getElementById('legendContainer');
             const tableBody = document.getElementById('tableBody');
-            stats.innerHTML = ''; legend.innerHTML = ''; tableBody.innerHTML = '';
+            if(!stats || !legend || !tableBody) return;
             
+            stats.innerHTML = ''; legend.innerHTML = ''; tableBody.innerHTML = '';
             const vacacionesSorted = [...vacaciones].sort((a,b) => new Date(a.start) - new Date(b.start));
 
             EMPLEADOS.forEach(emp => {
@@ -410,7 +496,7 @@
                     <div>
                         <div class="flex justify-between text-[11px] mb-1">
                             <span class="font-bold text-slate-700">${emp.nombre}</span>
-                            <span class="${restantes < 5 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes.toFixed(1)} r.</span>
+                            <span class="${restantes < 5 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes.toFixed(1)} rest.</span>
                         </div>
                         <div class="w-full bg-slate-100 rounded-full h-1.5">
                             <div class="h-1.5 rounded-full transition-all duration-700" style="width: ${Math.min(porcentaje, 100)}%; background-color: ${emp.color}"></div>
@@ -426,97 +512,44 @@
 
             vacacionesSorted.forEach(v => {
                 const emp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
-                tableBody.innerHTML += `
-                    <tr class="text-xs hover:bg-slate-50 transition-colors">
-                        <td class="font-bold text-slate-700">${v.title}</td>
-                        <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp ? emp.grupo : '-'}</span></td>
-                        <td>${v.start}</td><td>${v.end}</td>
-                        <td><span class="capitalize text-[10px] font-medium text-slate-400">${v.tipo || 'Completo'}</span></td>
-                        <td class="font-semibold text-blue-600">${v.valorTotal.toFixed(1)} d</td>
-                        <td>
-                            <button onclick="borrarVacacion('${v.id}')" class="text-red-400 hover:text-red-600 text-[10px] font-bold uppercase">Eliminar</button>
-                        </td>
-                    </tr>`;
+                const row = document.createElement('tr');
+                row.className = "text-xs hover:bg-slate-50 transition-colors";
+                row.innerHTML = `
+                    <td class="font-bold text-slate-700 p-3">${v.title}</td>
+                    <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp ? emp.grupo : '-'}</span></td>
+                    <td>${v.start}</td><td>${v.end}</td>
+                    <td><span class="capitalize text-[10px] font-medium text-slate-400">${v.tipo || 'Completo'}</span></td>
+                    <td class="font-semibold text-blue-600">${v.valorTotal.toFixed(1)} d</td>
+                    <td>
+                        <button class="delete-action text-red-400 hover:text-red-600 text-[10px] font-bold uppercase p-1">Eliminar</button>
+                    </td>
+                `;
+                row.querySelector('.delete-action').onclick = () => deleteVacation(v.id);
+                tableBody.appendChild(row);
             });
         }
 
-        window.borrarVacacion = (id) => {
-            const vData = vacaciones.find(v => v.id === id);
-            if(vData && confirm(`¿Eliminar las vacaciones de ${vData.title}?`)) {
-                vacaciones = vacaciones.filter(v => v.id !== id);
-                localStorage.setItem('vacaciones_2026', JSON.stringify(vacaciones));
-                const event = calendar.getEventById(id);
-                if (event) event.remove();
-                
-                notificarPorCorreo("ELIMINACIÓN", `${vData.title}: ${vData.start} al ${vData.end} (${vData.valorTotal}d)`);
-                actualizarUI();
-            }
-        };
-
-        // --- MANEJO DEL MODAL ---
-        function confirmarSeleccion(tipo) {
-            if(!tempSelection) return;
-            
-            const { info, empData, nombre } = tempSelection;
-            let factor = (tipo === 'completo') ? 1 : 0.5;
-            let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
-            const diasLaborables = contarLaborables(info.start, info.end, factor);
-
-            const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
-            
-            if (gastados + diasLaborables > MAX_DIAS_VACACIONES) {
-                alert(`Límite de ${MAX_DIAS_VACACIONES} días excedido.`);
-                cerrarModal();
+        function renderHistorico(historico) {
+            const list = document.getElementById('historyList');
+            if (!list) return;
+            if (historico.length === 0) {
+                list.innerHTML = '<div class="p-12 text-center text-slate-300 italic">No hay registros de actividad todavía.</div>';
                 return;
             }
-
-            const conflicto = vacaciones.some(v => {
-                const vEmp = EMPLEADOS.find(e => v.title.startsWith(e.nombre));
-                const esMismoEmpleado = v.title.startsWith(nombre);
-                
-                if (esMismoEmpleado) return false;
-
-                return vEmp.grupo === empData.grupo && 
-                       info.start < new Date(v.end) && 
-                       info.end > new Date(v.start);
-            });
-
-            if (conflicto) {
-                alert(`Conflicto de grupo detectado (Grupo ${empData.grupo} ocupado por otro compañero).`);
-                cerrarModal();
-                return;
-            }
-
-            const nuevo = { 
-                id: Date.now().toString(), 
-                title: nombre + labelSuffix, 
-                start: info.startStr, 
-                end: info.endStr, 
-                color: empData.color, 
-                allDay: true,
-                tipo: tipo,
-                valorTotal: diasLaborables
-            };
-
-            vacaciones.push(nuevo);
-            localStorage.setItem('vacaciones_2026', JSON.stringify(vacaciones));
-            calendar.addEvent(nuevo);
-            
-            notificarPorCorreo("ASIGNACIÓN", `${nombre} [${tipo}]: ${info.startStr} al ${info.endStr} (${diasLaborables} días)`);
-            
-            actualizarUI();
-            cerrarModal();
+            list.innerHTML = historico.map(item => `
+                <div class="history-item">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[10px] font-black uppercase tracking-tighter ${item.accion === 'ELIMINACIÓN' ? 'text-red-500' : 'text-blue-600'}">${item.accion}</span>
+                        <span class="text-[9px] text-slate-400 font-medium">${item.fecha}</span>
+                    </div>
+                    <div class="text-xs text-slate-700 font-medium leading-relaxed">${item.detalle}</div>
+                </div>
+            `).join('');
         }
 
-        function cerrarModal() {
-            document.getElementById('selectionModal').style.display = 'none';
-            tempSelection = null;
-            calendar.unselect();
-        }
-
-        // --- CALENDARIO ---
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
+            if (!calendarEl) return;
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'multiMonthYear',
                 initialDate: '2026-01-01',
@@ -526,36 +559,123 @@
                 selectable: true,
                 multiMonthMaxColumns: 4,
                 headerToolbar: false,
-                events: [
-                    ...FESTIVOS_2026.map(f => ({ title: 'F', start: f, allDay: true, display: 'background', backgroundColor: '#fee2e2' })),
-                    ...vacaciones
-                ],
-                datesSet: () => document.getElementById('currentDateDisplay').innerText = calendar.view.title,
+                events: FESTIVOS_2026.map(f => ({ title: 'F', start: f, allDay: true, display: 'background', backgroundColor: '#fee2e2' })),
+                datesSet: () => {
+                    const disp = document.getElementById('currentDateDisplay');
+                    if (disp) disp.innerText = calendar.view.title;
+                },
                 select: function(info) {
                     const nombre = document.getElementById('empSelector').value;
                     const empData = EMPLEADOS.find(e => e.nombre === nombre);
-                    
-                    const laborablesBase = contarLaborables(info.start, info.end, 1);
-                    if (laborablesBase === 0) {
-                        calendar.unselect();
-                        return;
-                    }
-
+                    if (contarLaborables(info.start, info.end, 1) === 0) { calendar.unselect(); return; }
                     tempSelection = { info, empData, nombre };
                     document.getElementById('selectionModal').style.display = 'flex';
                 },
                 eventClick: (info) => {
-                    if (info.event.display !== 'background') borrarVacacion(info.event.id);
+                    if (info.event.display !== 'background') deleteVacation(info.event.id);
                 }
             });
             calendar.render();
+            // Inyectar eventos iniciales si existen
+            vacaciones.forEach(v => calendar.addEvent(v));
         }
 
-        document.getElementById('btnNext').onclick = () => calendar.next();
-        document.getElementById('btnPrev').onclick = () => calendar.prev();
-        document.getElementById('btnViewYear').onclick = function() { calendar.changeView('multiMonthYear'); this.classList.add('active-view'); document.getElementById('btnViewMonth').classList.remove('active-view'); };
-        document.getElementById('btnViewMonth').onclick = function() { calendar.changeView('dayGridMonth'); this.classList.add('active-view'); document.getElementById('btnViewYear').classList.remove('active-view'); };
-        document.getElementById('btnExport').onclick = () => html2pdf().from(document.querySelector('.calendar-wrapper')).save();
+        // --- INICIALIZACIÓN ---
+        const startSync = () => {
+            const vCol = collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
+            onSnapshot(vCol, (snap) => {
+                vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (calendar) {
+                    calendar.getEvents().forEach(e => { if(e.display !== 'background') e.remove(); });
+                    vacaciones.forEach(v => calendar.addEvent(v));
+                }
+                actualizarUI();
+                setSyncStatus('online', 'Sincronizado');
+            }, () => setSyncStatus('error', 'Error de red'));
+
+            const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+            onSnapshot(hCol, (snap) => {
+                const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp);
+                renderHistorico(history);
+            });
+        };
+
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Auth error", e);
+            }
+        };
+
+        // Listeners de Login
+        document.getElementById('loginForm').onsubmit = (e) => {
+            e.preventDefault();
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            if(u === 'admin' && p === 'metal2026') {
+                sessionStorage.setItem('isLogged', 'true');
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'grid';
+                if(!calendar) renderCalendar();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        };
+
+        document.getElementById('btnLogout').onclick = () => {
+            sessionStorage.clear();
+            location.reload();
+        };
+
+        // Navegación Calendario
+        document.getElementById('btnNext').onclick = () => calendar && calendar.next();
+        document.getElementById('btnPrev').onclick = () => calendar && calendar.prev();
+        document.getElementById('btnViewYear').onclick = function() { 
+            if(!calendar) return;
+            calendar.changeView('multiMonthYear'); 
+            this.classList.add('active-view'); this.classList.remove('text-slate-500');
+            document.getElementById('btnViewMonth').classList.remove('active-view');
+            document.getElementById('btnViewMonth').classList.add('text-slate-500');
+        };
+        document.getElementById('btnViewMonth').onclick = function() { 
+            if(!calendar) return;
+            calendar.changeView('dayGridMonth'); 
+            this.classList.add('active-view'); this.classList.remove('text-slate-500');
+            document.getElementById('btnViewYear').classList.remove('active-view');
+            document.getElementById('btnViewYear').classList.add('text-slate-500');
+        };
+
+        document.getElementById('btnExport').onclick = () => {
+            const element = document.querySelector('.calendar-wrapper');
+            const opt = { 
+                margin: 0.5, 
+                filename: 'Vacaciones_2026.pdf', 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { scale: 2 }, 
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' } 
+            };
+            html2pdf().set(opt).from(element).save();
+        };
+
+        // Arranque
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                startSync();
+                if(sessionStorage.getItem('isLogged') === 'true') {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'grid';
+                    setTimeout(renderCalendar, 100);
+                }
+            }
+        });
+
+        initAuth();
     </script>
 </body>
 </html>
