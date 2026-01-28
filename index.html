@@ -70,6 +70,7 @@
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
             border: 1px solid #e2e8f0;
             margin-bottom: 2rem;
+            min-height: 600px;
         }
 
         .summary-table {
@@ -356,7 +357,6 @@
         const TODOS_LOS_FESTIVOS = [...FESTIVOS_NACIONALES, ...FESTIVOS_LOCALES];
         const MAX_DIAS_VACACIONES = 25;
 
-        // Lista de Empleados reorganizada: Oficina (G1) arriba, Taller abajo
         const EMPLEADOS = [
             { nombre: "Raúl Villegas", color: "#7c3aed" },
             { nombre: "Igor Santamaría", color: "#1e40af" }, 
@@ -417,7 +417,9 @@
                 title: nombre + labelSuffix, 
                 start: info.startStr, 
                 end: info.endStr, 
-                color: empData.color, 
+                backgroundColor: empData.color,
+                borderColor: empData.color,
+                textColor: '#ffffff',
                 allDay: true,
                 tipo: tipo,
                 valorTotal: diasLaborables
@@ -486,6 +488,8 @@
 
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
+            if (!calendarEl) return;
+            
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'multiMonthYear',
                 initialDate: '2026-01-01',
@@ -493,10 +497,14 @@
                 firstDay: 1,
                 selectable: true,
                 headerToolbar: false,
-                events: [
-                    ...FESTIVOS_NACIONALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-nacional'] })),
-                    ...FESTIVOS_LOCALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-local'] }))
-                ],
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    // Combinamos festivos y vacaciones guardadas
+                    const festivosBase = [
+                        ...FESTIVOS_NACIONALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-nacional'] })),
+                        ...FESTIVOS_LOCALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-local'] }))
+                    ];
+                    successCallback([...festivosBase, ...vacaciones]);
+                },
                 datesSet: (i) => document.getElementById('currentDateDisplay').innerText = i.view.title,
                 select: (info) => {
                     const nombre = document.getElementById('empSelector').value;
@@ -504,7 +512,9 @@
                     tempSelection = { info, empData, nombre };
                     document.getElementById('selectionModal').style.display = 'flex';
                 },
-                eventClick: (info) => { if(info.event.display !== 'background') deleteVacation(info.event.id); }
+                eventClick: (info) => { 
+                    if(info.event.display !== 'background') deleteVacation(info.event.id); 
+                }
             });
             calendar.render();
         }
@@ -512,8 +522,8 @@
         // --- AUTH & SYNC ---
         async function startApp() {
             try {
-                if (initialToken) {
-                    await signInWithCustomToken(auth, initialToken);
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
@@ -524,18 +534,26 @@
             if (user) {
                 userAuth = user;
                 
+                // Escuchar vacaciones
                 const vCol = collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
                 onSnapshot(vCol, (snap) => {
                     vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    
+                    // Si el calendario ya existe, refrescar eventos
                     if (calendar) {
-                        calendar.getEvents().forEach(e => { if(e.display !== 'background') e.remove(); });
-                        vacaciones.forEach(v => calendar.addEvent(v));
+                        calendar.refetchEvents();
                     }
+                    
                     actualizarUI();
                     document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-green-500";
                     document.getElementById('syncText').innerText = "Conectado";
-                }, (error) => { console.error("Snapshot Error:", error); });
+                }, (error) => { 
+                    console.error("Snapshot Error:", error); 
+                    document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-red-500";
+                    document.getElementById('syncText').innerText = "Error de conexión";
+                });
 
+                // Escuchar historial
                 const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
                 onSnapshot(hCol, (snap) => {
                     const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp).slice(0, 50);
@@ -546,10 +564,14 @@
                         </div>`).join('');
                 });
 
+                // Solo mostrar la App si está logueado en sesión
                 if(sessionStorage.getItem('metalAuth') === 'true') {
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'grid';
-                    if(!calendar) renderCalendar();
+                    if(!calendar) {
+                        // Pequeño delay para asegurar que el DOM de #calendar está listo
+                        setTimeout(renderCalendar, 100);
+                    }
                 }
             }
         });
