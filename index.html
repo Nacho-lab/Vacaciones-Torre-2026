@@ -102,8 +102,10 @@
         
         .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 3px !important; cursor: pointer; }
 
+        .festivo-nacional { background-color: #fee2e2 !important; opacity: 0.8; }
+        .festivo-local { background-color: #dcfce7 !important; opacity: 0.8; }
+
         .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 0.5rem; }
         
         .btn-primary {
             background: #0f172a; color: white; padding: 0.6rem 1rem; border-radius: 0.5rem;
@@ -119,7 +121,6 @@
 
         .active-view { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
 
-        /* Panel Historial lateral (Drawer) */
         #historyDrawer {
             position: fixed;
             right: -400px;
@@ -142,13 +143,6 @@
             z-index: 10000;
             display: none;
         }
-
-        .history-item {
-            padding: 12px 16px;
-            border-bottom: 1px solid #f1f5f9;
-            transition: background 0.2s;
-        }
-        .history-item:hover { background: #f8fafc; }
 
         #selectionModal {
             display: none;
@@ -198,10 +192,13 @@
                 <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Entrar al Sistema</button>
                 <p id="loginError" class="text-red-500 text-xs text-center hidden">Credenciales incorrectas.</p>
             </form>
+            <div class="mt-6 text-center text-[10px] text-slate-400">
+                Torrelavega Metal - Calendario Oficial 2026
+            </div>
         </div>
     </div>
 
-    <!-- Modal de Selección de Jornada -->
+    <!-- Modal Selección Jornada -->
     <div id="selectionModal">
         <div class="bg-white p-6 rounded-xl shadow-xl w-80 space-y-4">
             <h3 class="font-bold text-slate-800 text-lg">Tipo de Jornada</h3>
@@ -224,7 +221,7 @@
         </div>
     </div>
 
-    <!-- Historial Lateral (Drawer) -->
+    <!-- Historial Lateral -->
     <div id="historyOverlay" onclick="window.toggleHistory(false)"></div>
     <div id="historyDrawer">
         <div class="p-6 border-b border-slate-100 flex justify-between items-center">
@@ -233,31 +230,27 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
         </div>
-        <div id="historyList" class="flex-1 overflow-y-auto">
-            <!-- Items de historial cargados dinámicamente -->
-        </div>
-        <div class="p-4 bg-slate-50 border-t border-slate-100">
-            <p class="text-[10px] text-slate-400 text-center uppercase font-bold tracking-wider">Registro centralizado en la nube</p>
-        </div>
+        <div id="historyList" class="flex-1 overflow-y-auto"></div>
     </div>
 
     <div class="app-container" id="mainApp">
         <aside class="sidebar space-y-6">
             <div class="mb-4">
                 <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Vacaciones<span class="text-blue-600">2026</span></h1>
-                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Central de Torrelavega</p>
+                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Torrelavega Metal</p>
             </div>
 
             <div class="flex-1 space-y-4 overflow-y-auto pr-2">
                 <div class="card">
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Empleado Activo</label>
                     <select id="empSelector" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
-                        <optgroup label="Grupo 1 (Taller)">
+                        <optgroup label="OFICINA (G1)">
+                            <option value="Raúl Villegas">Raúl Villegas</option>
                             <option value="Igor Santamaría">Igor Santamaría</option>
                             <option value="Adrian">Adrian</option>
                             <option value="Nacho Galán">Nacho Galán</option>
                         </optgroup>
-                        <optgroup label="Grupo 2 (Oficina)">
+                        <optgroup label="TALLER">
                             <option value="Jesus Fernández">Jesus Fernández</option>
                             <option value="Luis Portilla">Luis Portilla</option>
                             <option value="Jorge Barreda">Jorge Barreda</option>
@@ -270,22 +263,19 @@
                     <div id="statsContainer" class="space-y-4"></div>
                 </div>
 
-                <button onclick="window.toggleHistory(true)" class="btn-outline w-full group">
-                    <svg class="group-hover:rotate-12 transition-transform" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 1 1-9-9 8.95 8.95 0 0 1 5.9 2.2L21 8M21 3v5h-5"/></svg>
-                    Ver Historial de Cambios
-                </button>
+                <button onclick="window.toggleHistory(true)" class="btn-outline w-full group">Ver Historial</button>
 
                 <div class="card">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Leyenda</label>
-                    <div id="legendContainer" class="space-y-2 text-xs"></div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Leyenda Calendario</label>
+                    <div class="space-y-2 text-[11px]">
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-red-100 border border-red-200 rounded"></span><span>Fiesta Nacional / Reg. / Conv.</span></div>
+                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-100 border border-green-200 rounded"></span><span>Fiesta Local (Torrelavega)</span></div>
+                    </div>
                 </div>
             </div>
 
             <div class="pt-4 border-t border-slate-100 space-y-2">
-                <button id="btnExport" class="btn-primary w-full shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Generar PDF
-                </button>
+                <button id="btnExport" class="btn-primary w-full shadow-sm">Generar PDF</button>
                 <button id="btnLogout" class="w-full text-slate-400 text-[10px] font-bold uppercase hover:text-red-500 transition-colors py-2">Cerrar Sesión</button>
             </div>
         </aside>
@@ -293,28 +283,25 @@
         <main class="calendar-wrapper">
             <header class="flex justify-between items-center mb-6">
                 <div class="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">←</button>
+                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg">←</button>
                     <span id="currentDateDisplay" class="font-bold text-slate-700 px-4 min-w-[100px] text-center">2026</span>
-                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg transition-colors">→</button>
+                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg">→</button>
                 </div>
                 <div class="flex gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-                    <button id="btnViewYear" class="px-4 py-2 rounded-lg text-sm font-semibold active-view transition-all">Anual</button>
-                    <button id="btnViewMonth" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-500 hover:bg-slate-50 transition-all">Mensual</button>
+                    <button id="btnViewYear" class="px-4 py-2 rounded-lg text-sm font-semibold active-view">Anual</button>
+                    <button id="btnViewMonth" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-500">Mensual</button>
                 </div>
             </header>
 
             <div id='calendar'></div>
 
             <section class="mt-8">
-                <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-                    Tabla Resumen de Asignaciones
-                </h3>
+                <h3 class="text-lg font-bold text-slate-800 mb-4">Tabla de Asignaciones</h3>
                 <div class="summary-table overflow-x-auto">
                     <table>
                         <thead>
                             <tr>
-                                <th>Empleado</th><th>Grupo</th><th>Desde</th><th>Hasta</th><th>Tipo</th><th>Días</th><th>Acción</th>
+                                <th>Empleado</th><th>Desde</th><th>Hasta</th><th>Tipo</th><th>Días</th><th>Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody"></tbody>
@@ -327,76 +314,65 @@
     <!-- Indicador de Sincronización -->
     <div id="syncIndicator">
         <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-orange-400"></span>
-        <span id="syncText">Configurando Firebase...</span>
+        <span id="syncText">Iniciando...</span>
     </div>
 
-    <!-- Firebase y Lógica -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================================
-        // CONFIGURACIÓN PARA GITHUB / PRODUCCIÓN
-        // ==========================================================
+        // CONFIGURACIÓN FIREBASE
         const manualFirebaseConfig = {
             apiKey: "AIzaSyB3yRAv83hjwy_6jRqGzj2AzZ-V2iQ4iy0",
             authDomain: "vacaciones-torrelavega.firebaseapp.com",
             projectId: "vacaciones-torrelavega",
             storageBucket: "vacaciones-torrelavega.firebasestorage.app",
             messagingSenderId: "77778108267",
-            appId: "1:77778108267:web:e942576bb82be5c3bf562e",
-            measurementId: "G-36DTZV323K"
+            appId: "1:77778108267:web:e942576bb82be5c3bf562e"
         };
 
-        const firebaseConfig = (typeof __firebase_config !== 'undefined') 
-            ? JSON.parse(__firebase_config) 
-            : manualFirebaseConfig;
-            
+        const firebaseConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : manualFirebaseConfig;
         const appId = (typeof __app_id !== 'undefined') ? __app_id : 'mi-app-vacaciones-metal';
+        const initialToken = (typeof __initial_auth_token !== 'undefined') ? __initial_auth_token : null;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ==========================================================
-
-        let currentUser = null;
+        let userAuth = null;
         let vacaciones = [];
         let calendar = null;
         let tempSelection = null;
-        let unsubVacations = null;
-        let unsubHistory = null;
 
-        const FESTIVOS_2026 = [
-            "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", 
-            "2026-05-01", "2026-07-25", "2026-08-15", "2026-09-15", 
-            "2026-09-16", "2026-11-01", "2026-12-06", "2026-12-08", 
-            "2026-12-24", "2026-12-25", "2026-12-31", "2026-09-17" 
+        // Fiestas y Convenio
+        const FESTIVOS_NACIONALES = [
+            "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", 
+            "2026-07-28", "2026-08-15", "2026-10-12", "2026-11-01", "2026-12-06", 
+            "2026-12-08", "2026-12-25",
+            "2026-12-07", "2026-12-24", "2026-12-31" 
         ];
-        
+        const FESTIVOS_LOCALES = ["2026-08-17", "2026-09-16"];
+        const TODOS_LOS_FESTIVOS = [...FESTIVOS_NACIONALES, ...FESTIVOS_LOCALES];
         const MAX_DIAS_VACACIONES = 25;
 
+        // Lista de Empleados reorganizada: Oficina (G1) arriba, Taller abajo
         const EMPLEADOS = [
-            { nombre: "Igor Santamaría", grupo: "G1", color: "#1e40af" }, 
-            { nombre: "Adrian", grupo: "G1", color: "#3b82f6" },          
-            { nombre: "Nacho Galán", grupo: "G1", color: "#60a5fa" },      
-            { nombre: "Jesus Fernández", grupo: "G2", color: "#065f46" }, 
-            { nombre: "Luis Portilla", grupo: "G2", color: "#10b981" },    
-            { nombre: "Jorge Barreda", grupo: "G2", color: "#34d399" }     
+            { nombre: "Raúl Villegas", color: "#7c3aed" },
+            { nombre: "Igor Santamaría", color: "#1e40af" }, 
+            { nombre: "Adrian", color: "#3b82f6" },          
+            { nombre: "Nacho Galán", color: "#60a5fa" },      
+            { nombre: "Jesus Fernández", color: "#065f46" }, 
+            { nombre: "Luis Portilla", color: "#10b981" },    
+            { nombre: "Jorge Barreda", color: "#34d399" }
         ];
 
-        // --- FUNCIONES GLOBALES ---
+        // --- FUNCIONES CORE ---
         window.toggleHistory = (open) => {
             const drawer = document.getElementById('historyDrawer');
             const overlay = document.getElementById('historyOverlay');
-            if(open) {
-                drawer.classList.add('open');
-                overlay.style.display = 'block';
-            } else {
-                drawer.classList.remove('open');
-                overlay.style.display = 'none';
-            }
+            if(open) { drawer.classList.add('open'); overlay.style.display = 'block'; }
+            else { drawer.classList.remove('open'); overlay.style.display = 'none'; }
         };
 
         window.cerrarModal = () => {
@@ -405,16 +381,34 @@
             if (calendar) calendar.unselect();
         };
 
+        const esLaborable = (fecha) => {
+            const d = new Date(fecha);
+            const iso = d.toISOString().split('T')[0];
+            const diaSemana = d.getDay();
+            return diaSemana !== 0 && diaSemana !== 6 && !TODOS_LOS_FESTIVOS.includes(iso);
+        };
+
+        const contarLaborables = (s, e, factor = 1) => {
+            let c = 0; let cur = new Date(s); let stop = new Date(e);
+            while (cur < stop) { if (esLaborable(cur)) c += factor; cur.setDate(cur.getDate() + 1); }
+            return c;
+        };
+
         window.confirmarSeleccion = async (tipo) => {
-            if(!tempSelection || !currentUser) return;
+            if(!tempSelection || !userAuth) return;
             const { info, empData, nombre } = tempSelection;
             let factor = (tipo === 'completo') ? 1 : 0.5;
             let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
             const diasLaborables = contarLaborables(info.start, info.end, factor);
 
+            if(diasLaborables === 0) {
+                alert("Selección inválida: no hay días laborables.");
+                window.cerrarModal(); return;
+            }
+
             const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
             if (gastados + diasLaborables > MAX_DIAS_VACACIONES) { 
-                alert(`Este empleado no tiene suficientes días restantes.`); 
+                alert(`Error: Supera los 25 días. Restan ${(MAX_DIAS_VACACIONES - gastados).toFixed(1)}.`); 
                 window.cerrarModal(); return; 
             }
 
@@ -429,90 +423,37 @@
                 valorTotal: diasLaborables
             };
 
-            await saveVacation(nuevo);
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', nuevo.id), nuevo);
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', nuevo.id), {
+                    accion: 'ASIGNACIÓN', detalle: `${nuevo.title}: ${nuevo.valorTotal} días`, timestamp: Date.now(), fecha: new Date().toLocaleString()
+                });
+            } catch (e) { console.error("Error al guardar:", e); }
+            
             window.cerrarModal();
         };
 
-        const setSyncStatus = (type, text) => {
-            const dot = document.getElementById('syncStatusDot');
-            const label = document.getElementById('syncText');
-            if (!dot || !label) return;
-            label.innerText = text;
-            if(type === 'online') dot.className = "w-2 h-2 rounded-full bg-green-500";
-            else if(type === 'error') dot.className = "w-2 h-2 rounded-full bg-red-500";
-            else dot.className = "w-2 h-2 rounded-full bg-orange-400 animate-pulse";
-        };
-
-        const esLaborable = (f) => {
-            const d = new Date(f);
-            const s = d.toISOString().split('T')[0];
-            return d.getDay() !== 0 && d.getDay() !== 6 && !FESTIVOS_2026.includes(s);
-        };
-
-        const contarLaborables = (s, e, factor = 1) => {
-            let c = 0; let cur = new Date(s); let stop = new Date(e);
-            while (cur < stop) { if (esLaborable(cur)) c += factor; cur.setDate(cur.getDate() + 1); }
-            return c;
-        };
-
-        // RUTAS CRÍTICAS (RULE 1)
-        const getVacationsPath = () => collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
-        const getHistoryPath = () => collection(db, 'artifacts', appId, 'public', 'data', 'history');
-
-        async function saveVacation(v) {
-            if(!currentUser) return;
-            setSyncStatus('syncing', 'Guardando...');
-            try {
-                // RULE 1: Ruta exacta
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', v.id), v);
-                await logActivity('ASIGNACIÓN', `${v.title}: ${v.start} al ${v.end} (${v.valorTotal}d)`);
-            } catch (e) {
-                console.error("Save Error:", e);
-                setSyncStatus('error', 'Error al guardar');
-            }
-        }
-
         async function deleteVacation(vId) {
-            if(!currentUser) return;
+            if (!userAuth) return;
             const vData = vacaciones.find(v => v.id === vId);
-            if(!vData) return;
-            
-            if(confirm(`¿Deseas eliminar las vacaciones de ${vData.title}?`)) {
-                setSyncStatus('syncing', 'Eliminando...');
-                try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', vId));
-                    await logActivity('ELIMINACIÓN', `${vData.title}: del ${vData.start} al ${vData.end}`);
-                } catch (e) {
-                    console.error("Delete Error:", e);
-                    setSyncStatus('error', 'Error al eliminar');
-                }
-            }
-        }
-
-        async function logActivity(accion, detalle) {
-            if(!currentUser) return;
-            const logId = Date.now().toString();
+            if(!vData || !confirm(`¿Eliminar vacaciones de ${vData.title}?`)) return;
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', logId), {
-                    accion, detalle, 
-                    timestamp: Date.now(),
-                    fecha: new Date().toLocaleString()
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', vId));
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', Date.now().toString()), {
+                    accion: 'ELIMINACIÓN', detalle: `Borrado: ${vData.title}`, timestamp: Date.now(), fecha: new Date().toLocaleString()
                 });
-            } catch (e) {}
+            } catch (e) { console.error("Error al borrar:", e); }
         }
 
         function actualizarUI() {
             const stats = document.getElementById('statsContainer');
-            const legend = document.getElementById('legendContainer');
             const tableBody = document.getElementById('tableBody');
-            if(!stats || !legend || !tableBody) return;
+            if(!stats || !tableBody) return;
             
-            stats.innerHTML = ''; legend.innerHTML = ''; tableBody.innerHTML = '';
-            const vacacionesSorted = [...vacaciones].sort((a,b) => new Date(a.start) - new Date(b.start));
-
+            stats.innerHTML = ''; tableBody.innerHTML = '';
+            
             EMPLEADOS.forEach(emp => {
-                const misVacas = vacaciones.filter(v => v.title && v.title.startsWith(emp.nombre));
-                const diasGastados = misVacas.reduce((total, v) => total + v.valorTotal, 0);
+                const diasGastados = vacaciones.filter(v => v.title && v.title.startsWith(emp.nombre)).reduce((t, v) => t + v.valorTotal, 0);
                 const restantes = MAX_DIAS_VACACIONES - diasGastados;
                 const porcentaje = (diasGastados / MAX_DIAS_VACACIONES) * 100;
 
@@ -520,125 +461,105 @@
                     <div>
                         <div class="flex justify-between text-[11px] mb-1">
                             <span class="font-bold text-slate-700">${emp.nombre}</span>
-                            <span class="${restantes < 5 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes.toFixed(1)} rest.</span>
+                            <span class="${restantes < 3 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes.toFixed(1)} d.</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1.5">
-                            <div class="h-1.5 rounded-full transition-all duration-700" style="width: ${Math.min(porcentaje, 100)}%; background-color: ${emp.color}"></div>
+                        <div class="w-full bg-slate-100 rounded-full h-1">
+                            <div class="h-1 rounded-full transition-all duration-700" style="width: ${porcentaje}%; background-color: ${emp.color}"></div>
                         </div>
-                    </div>`;
-
-                legend.innerHTML += `
-                    <div class="flex items-center gap-2">
-                        <span class="status-dot" style="background-color: ${emp.color}"></span>
-                        <span class="text-slate-600">${emp.nombre}</span>
                     </div>`;
             });
 
-            vacacionesSorted.forEach(v => {
-                const emp = EMPLEADOS.find(e => v.title && v.title.startsWith(e.nombre));
+            vacaciones.sort((a,b) => new Date(a.start) - new Date(b.start)).forEach(v => {
                 const row = document.createElement('tr');
-                row.className = "text-xs hover:bg-slate-50 transition-colors";
+                row.className = "text-xs hover:bg-slate-50";
                 row.innerHTML = `
-                    <td class="font-bold text-slate-700 p-3">${v.title || 'S/N'}</td>
-                    <td><span class="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-slate-500 font-bold">${emp ? emp.grupo : '-'}</span></td>
+                    <td class="font-bold p-3">${v.title}</td>
                     <td>${v.start}</td><td>${v.end}</td>
-                    <td><span class="capitalize text-[10px] font-medium text-slate-400">${v.tipo || 'Completo'}</span></td>
-                    <td class="font-semibold text-blue-600">${(v.valorTotal || 0).toFixed(1)} d</td>
-                    <td>
-                        <button class="delete-action text-red-400 hover:text-red-600 text-[10px] font-bold uppercase p-1">Eliminar</button>
-                    </td>
+                    <td class="capitalize">${v.tipo}</td>
+                    <td class="font-bold text-blue-600">${v.valorTotal.toFixed(1)}</td>
+                    <td><button class="delete-btn text-red-400 text-[10px] font-bold hover:text-red-600 transition">BORRAR</button></td>
                 `;
-                row.querySelector('.delete-action').onclick = () => deleteVacation(v.id);
+                row.querySelector('.delete-btn').onclick = () => deleteVacation(v.id);
                 tableBody.appendChild(row);
             });
         }
 
-        function renderHistorico(historico) {
-            const list = document.getElementById('historyList');
-            if (!list) return;
-            if (historico.length === 0) {
-                list.innerHTML = '<div class="p-12 text-center text-slate-300 italic">No hay registros de actividad todavía.</div>';
-                return;
-            }
-            list.innerHTML = historico.map(item => `
-                <div class="history-item">
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[10px] font-black uppercase tracking-tighter ${item.accion === 'ELIMINACIÓN' ? 'text-red-500' : 'text-blue-600'}">${item.accion}</span>
-                        <span class="text-[9px] text-slate-400 font-medium">${item.fecha}</span>
-                    </div>
-                    <div class="text-xs text-slate-700 font-medium leading-relaxed">${item.detalle}</div>
-                </div>
-            `).join('');
-        }
-
         function renderCalendar() {
             const calendarEl = document.getElementById('calendar');
-            if (!calendarEl || calendar) return; // Evitar doble renderizado
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'multiMonthYear',
                 initialDate: '2026-01-01',
                 locale: 'es',
                 firstDay: 1,
-                height: 'auto',
                 selectable: true,
-                multiMonthMaxColumns: 4,
                 headerToolbar: false,
-                events: FESTIVOS_2026.map(f => ({ title: 'F', start: f, allDay: true, display: 'background', backgroundColor: '#fee2e2' })),
-                datesSet: () => {
-                    const disp = document.getElementById('currentDateDisplay');
-                    if (disp) disp.innerText = calendar.view.title;
-                },
-                select: function(info) {
+                events: [
+                    ...FESTIVOS_NACIONALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-nacional'] })),
+                    ...FESTIVOS_LOCALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-local'] }))
+                ],
+                datesSet: (i) => document.getElementById('currentDateDisplay').innerText = i.view.title,
+                select: (info) => {
                     const nombre = document.getElementById('empSelector').value;
                     const empData = EMPLEADOS.find(e => e.nombre === nombre);
-                    if (contarLaborables(info.start, info.end, 1) === 0) { calendar.unselect(); return; }
                     tempSelection = { info, empData, nombre };
                     document.getElementById('selectionModal').style.display = 'flex';
                 },
-                eventClick: (info) => {
-                    if (info.event.display !== 'background') deleteVacation(info.event.id);
-                }
+                eventClick: (info) => { if(info.event.display !== 'background') deleteVacation(info.event.id); }
             });
             calendar.render();
-            vacaciones.forEach(v => calendar.addEvent(v));
         }
 
-        // RULE 3: Auth Before Queries
-        const startSync = () => {
-            if (!currentUser) return;
-
-            // Limpiar suscripciones previas si existen
-            if (unsubVacations) unsubVacations();
-            if (unsubHistory) unsubHistory();
-
-            unsubVacations = onSnapshot(getVacationsPath(), (snap) => {
-                vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                if (calendar) {
-                    calendar.getEvents().forEach(e => { if(e.display !== 'background') e.remove(); });
-                    vacaciones.forEach(v => calendar.addEvent(v));
+        // --- AUTH & SYNC ---
+        async function startApp() {
+            try {
+                if (initialToken) {
+                    await signInWithCustomToken(auth, initialToken);
+                } else {
+                    await signInAnonymously(auth);
                 }
-                actualizarUI();
-                setSyncStatus('online', 'En línea (Sincronizado)');
-            }, (error) => {
-                console.error("Firestore Error (Vacations):", error);
-                setSyncStatus('error', 'Error de permisos de lectura');
-            });
+            } catch (e) { console.error("Auth Error:", e); }
+        }
 
-            unsubHistory = onSnapshot(getHistoryPath(), (snap) => {
-                const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp);
-                renderHistorico(history);
-            }, (error) => {
-                console.error("Firestore Error (History):", error);
-            });
-        };
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                userAuth = user;
+                
+                const vCol = collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
+                onSnapshot(vCol, (snap) => {
+                    vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    if (calendar) {
+                        calendar.getEvents().forEach(e => { if(e.display !== 'background') e.remove(); });
+                        vacaciones.forEach(v => calendar.addEvent(v));
+                    }
+                    actualizarUI();
+                    document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-green-500";
+                    document.getElementById('syncText').innerText = "Conectado";
+                }, (error) => { console.error("Snapshot Error:", error); });
 
-        // Listeners de UI
+                const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+                onSnapshot(hCol, (snap) => {
+                    const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp).slice(0, 50);
+                    document.getElementById('historyList').innerHTML = history.map(h => `
+                        <div class="p-3 border-b text-xs">
+                            <div class="flex justify-between font-bold text-blue-600 mb-1"><span>${h.accion}</span><span class="text-slate-400 text-[10px]">${h.fecha}</span></div>
+                            <div class="text-slate-600">${h.detalle}</div>
+                        </div>`).join('');
+                });
+
+                if(sessionStorage.getItem('metalAuth') === 'true') {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'grid';
+                    if(!calendar) renderCalendar();
+                }
+            }
+        });
+
         document.getElementById('loginForm').onsubmit = (e) => {
             e.preventDefault();
             const u = document.getElementById('username').value;
             const p = document.getElementById('password').value;
             if(u === 'admin' && p === 'metal2026') {
-                sessionStorage.setItem('isLogged', 'true');
+                sessionStorage.setItem('metalAuth', 'true');
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'grid';
                 if(!calendar) renderCalendar();
@@ -648,71 +569,22 @@
         };
 
         document.getElementById('btnLogout').onclick = () => {
-            sessionStorage.clear();
+            sessionStorage.removeItem('metalAuth');
             location.reload();
         };
 
-        document.getElementById('btnNext').onclick = () => calendar && calendar.next();
-        document.getElementById('btnPrev').onclick = () => calendar && calendar.prev();
+        document.getElementById('btnNext').onclick = () => calendar.next();
+        document.getElementById('btnPrev').onclick = () => calendar.prev();
         document.getElementById('btnViewYear').onclick = function() { 
-            if(!calendar) return;
             calendar.changeView('multiMonthYear'); 
-            this.classList.add('active-view');
-            document.getElementById('btnViewMonth').classList.remove('active-view');
+            this.classList.add('active-view'); document.getElementById('btnViewMonth').classList.remove('active-view');
         };
         document.getElementById('btnViewMonth').onclick = function() { 
-            if(!calendar) return;
             calendar.changeView('dayGridMonth'); 
-            this.classList.add('active-view');
-            document.getElementById('btnViewYear').classList.remove('active-view');
+            this.classList.add('active-view'); document.getElementById('btnViewYear').classList.remove('active-view');
         };
 
-        document.getElementById('btnExport').onclick = () => {
-            const element = document.querySelector('.calendar-wrapper');
-            const opt = { 
-                margin: 0.5, 
-                filename: 'Vacaciones_Metal_2026.pdf', 
-                image: { type: 'jpeg', quality: 0.98 }, 
-                html2canvas: { scale: 2 }, 
-                jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' } 
-            };
-            html2pdf().set(opt).from(element).save();
-        };
-
-        // RULE 3 - CICLO DE VIDA DE AUTH (CRÍTICO)
-        const initFirebase = async () => {
-            setSyncStatus('syncing', 'Autenticando...');
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) {
-                console.error("Auth Error:", e);
-                setSyncStatus('error', 'Error al conectar con el servidor');
-            }
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                startSync();
-                if(sessionStorage.getItem('isLogged') === 'true') {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'grid';
-                    setTimeout(renderCalendar, 200);
-                }
-            } else {
-                currentUser = null;
-                setSyncStatus('offline', 'Desconectado');
-            }
-        });
-
-        // Ejecución inicial
-        window.onload = () => {
-            initFirebase();
-        };
+        startApp();
     </script>
 </body>
 </html>
