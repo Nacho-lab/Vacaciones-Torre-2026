@@ -335,7 +335,6 @@
 
         const firebaseConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : manualFirebaseConfig;
         const appId = (typeof __app_id !== 'undefined') ? __app_id : 'mi-app-vacaciones-metal';
-        const initialToken = (typeof __initial_auth_token !== 'undefined') ? __initial_auth_token : null;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -346,12 +345,11 @@
         let calendar = null;
         let tempSelection = null;
 
-        // Fiestas y Convenio
+        // Fiestas y Convenio 2026 - Actualizado para corregir bloqueos en traslados y locales
         const FESTIVOS_NACIONALES = [
             "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", 
-            "2026-07-28", "2026-08-15", "2026-10-12", "2026-11-01", "2026-12-06", 
-            "2026-12-08", "2026-12-25",
-            "2026-12-07", "2026-12-24", "2026-12-31" 
+            "2026-07-28", "2026-08-15", "2026-10-12", "2026-11-02", "2026-12-07",
+            "2026-12-08", "2026-12-25", "2026-12-24", "2026-12-31" 
         ];
         const FESTIVOS_LOCALES = ["2026-08-17", "2026-09-16"];
         const TODOS_LOS_FESTIVOS = [...FESTIVOS_NACIONALES, ...FESTIVOS_LOCALES];
@@ -383,14 +381,25 @@
 
         const esLaborable = (fecha) => {
             const d = new Date(fecha);
-            const iso = d.toISOString().split('T')[0];
-            const diaSemana = d.getDay();
+            // Normalizar a medianoche local para evitar problemas de zona horaria
+            const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
+            const diaSemana = d.getDay(); // 0: Dom, 6: Sab
+            
+            // Es laborable si no es fin de semana Y no está en la lista de festivos exactos
             return diaSemana !== 0 && diaSemana !== 6 && !TODOS_LOS_FESTIVOS.includes(iso);
         };
 
-        const contarLaborables = (s, e, factor = 1) => {
-            let c = 0; let cur = new Date(s); let stop = new Date(e);
-            while (cur < stop) { if (esLaborable(cur)) c += factor; cur.setDate(cur.getDate() + 1); }
+        const contarLaborables = (sStr, eStr, factor = 1) => {
+            let c = 0; 
+            let cur = new Date(sStr); 
+            let stop = new Date(eStr);
+            
+            while (cur < stop) { 
+                if (esLaborable(cur)) {
+                    c += factor; 
+                }
+                cur.setDate(cur.getDate() + 1); 
+            }
             return c;
         };
 
@@ -399,15 +408,16 @@
             const { info, empData, nombre } = tempSelection;
             let factor = (tipo === 'completo') ? 1 : 0.5;
             let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
-            const diasLaborables = contarLaborables(info.start, info.end, factor);
+            
+            const diasLaborablesContados = contarLaborables(info.startStr, info.endStr, factor);
 
-            if(diasLaborables === 0) {
-                alert("Selección inválida: no hay días laborables.");
+            if(diasLaborablesContados <= 0) {
+                alert("La selección no contiene días laborables efectivos (fines de semana o festivos).");
                 window.cerrarModal(); return;
             }
 
             const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
-            if (gastados + diasLaborables > MAX_DIAS_VACACIONES) { 
+            if (gastados + diasLaborablesContados > MAX_DIAS_VACACIONES) { 
                 alert(`Error: Supera los 25 días. Restan ${(MAX_DIAS_VACACIONES - gastados).toFixed(1)}.`); 
                 window.cerrarModal(); return; 
             }
@@ -422,7 +432,7 @@
                 textColor: '#ffffff',
                 allDay: true,
                 tipo: tipo,
-                valorTotal: diasLaborables
+                valorTotal: diasLaborablesContados
             };
 
             try {
@@ -498,14 +508,16 @@
                 selectable: true,
                 headerToolbar: false,
                 events: function(fetchInfo, successCallback, failureCallback) {
-                    // Combinamos festivos y vacaciones guardadas
                     const festivosBase = [
                         ...FESTIVOS_NACIONALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-nacional'] })),
                         ...FESTIVOS_LOCALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-local'] }))
                     ];
                     successCallback([...festivosBase, ...vacaciones]);
                 },
-                datesSet: (i) => document.getElementById('currentDateDisplay').innerText = i.view.title,
+                datesSet: (i) => {
+                   const display = document.getElementById('currentDateDisplay');
+                   if(display) display.innerText = i.view.title;
+                },
                 select: (info) => {
                     const nombre = document.getElementById('empSelector').value;
                     const empData = EMPLEADOS.find(e => e.nombre === nombre);
@@ -519,7 +531,6 @@
             calendar.render();
         }
 
-        // --- AUTH & SYNC ---
         async function startApp() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -533,45 +544,35 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 userAuth = user;
-                
-                // Escuchar vacaciones
                 const vCol = collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
                 onSnapshot(vCol, (snap) => {
                     vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    
-                    // Si el calendario ya existe, refrescar eventos
-                    if (calendar) {
-                        calendar.refetchEvents();
-                    }
-                    
+                    if (calendar) calendar.refetchEvents();
                     actualizarUI();
                     document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-green-500";
                     document.getElementById('syncText').innerText = "Conectado";
                 }, (error) => { 
-                    console.error("Snapshot Error:", error); 
                     document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-red-500";
                     document.getElementById('syncText').innerText = "Error de conexión";
                 });
 
-                // Escuchar historial
                 const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
                 onSnapshot(hCol, (snap) => {
                     const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp).slice(0, 50);
-                    document.getElementById('historyList').innerHTML = history.map(h => `
-                        <div class="p-3 border-b text-xs">
-                            <div class="flex justify-between font-bold text-blue-600 mb-1"><span>${h.accion}</span><span class="text-slate-400 text-[10px]">${h.fecha}</span></div>
-                            <div class="text-slate-600">${h.detalle}</div>
-                        </div>`).join('');
+                    const list = document.getElementById('historyList');
+                    if(list) {
+                        list.innerHTML = history.map(h => `
+                            <div class="p-3 border-b text-xs">
+                                <div class="flex justify-between font-bold text-blue-600 mb-1"><span>${h.accion}</span><span class="text-slate-400 text-[10px]">${h.fecha}</span></div>
+                                <div class="text-slate-600">${h.detalle}</div>
+                            </div>`).join('');
+                    }
                 });
 
-                // Solo mostrar la App si está logueado en sesión
                 if(sessionStorage.getItem('metalAuth') === 'true') {
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('mainApp').style.display = 'grid';
-                    if(!calendar) {
-                        // Pequeño delay para asegurar que el DOM de #calendar está listo
-                        setTimeout(renderCalendar, 100);
-                    }
+                    if(!calendar) setTimeout(renderCalendar, 100);
                 }
             }
         });
