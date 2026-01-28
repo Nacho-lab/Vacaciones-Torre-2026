@@ -345,13 +345,16 @@
         let calendar = null;
         let tempSelection = null;
 
-        // Fiestas y Convenio 2026 - Actualizado para corregir bloqueos en traslados y locales
+        // Fiestas y Convenio 2026 ACTUALIZADO
+        // Se ha eliminado el 2 de noviembre (2026-11-02)
         const FESTIVOS_NACIONALES = [
             "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", 
-            "2026-07-28", "2026-08-15", "2026-10-12", "2026-11-02", "2026-12-07",
+            "2026-07-28", "2026-08-15", "2026-10-12", "2026-12-07",
             "2026-12-08", "2026-12-25", "2026-12-24", "2026-12-31" 
         ];
-        const FESTIVOS_LOCALES = ["2026-08-17", "2026-09-16"];
+        
+        // Fiestas Locales Actualizadas: 17 Ago (San Roque), 15 Sep (Bien Aparecida) y 16 Sep (San Cipriano)
+        const FESTIVOS_LOCALES = ["2026-08-17", "2026-09-15", "2026-09-16"];
         const TODOS_LOS_FESTIVOS = [...FESTIVOS_NACIONALES, ...FESTIVOS_LOCALES];
         const MAX_DIAS_VACACIONES = 25;
 
@@ -381,11 +384,8 @@
 
         const esLaborable = (fecha) => {
             const d = new Date(fecha);
-            // Normalizar a medianoche local para evitar problemas de zona horaria
             const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
             const diaSemana = d.getDay(); // 0: Dom, 6: Sab
-            
-            // Es laborable si no es fin de semana Y no está en la lista de festivos exactos
             return diaSemana !== 0 && diaSemana !== 6 && !TODOS_LOS_FESTIVOS.includes(iso);
         };
 
@@ -393,11 +393,8 @@
             let c = 0; 
             let cur = new Date(sStr); 
             let stop = new Date(eStr);
-            
             while (cur < stop) { 
-                if (esLaborable(cur)) {
-                    c += factor; 
-                }
+                if (esLaborable(cur)) { c += factor; }
                 cur.setDate(cur.getDate() + 1); 
             }
             return c;
@@ -412,13 +409,13 @@
             const diasLaborablesContados = contarLaborables(info.startStr, info.endStr, factor);
 
             if(diasLaborablesContados <= 0) {
-                alert("La selección no contiene días laborables efectivos (fines de semana o festivos).");
+                alert("La selección no contiene días laborables efectivos.");
                 window.cerrarModal(); return;
             }
 
             const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
             if (gastados + diasLaborablesContados > MAX_DIAS_VACACIONES) { 
-                alert(`Error: Supera los 25 días. Restan ${(MAX_DIAS_VACACIONES - gastados).toFixed(1)}.`); 
+                alert(`Error: Supera los 25 días.`); 
                 window.cerrarModal(); return; 
             }
 
@@ -551,9 +548,6 @@
                     actualizarUI();
                     document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-green-500";
                     document.getElementById('syncText').innerText = "Conectado";
-                }, (error) => { 
-                    document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-red-500";
-                    document.getElementById('syncText').innerText = "Error de conexión";
                 });
 
                 const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
