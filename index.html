@@ -3,605 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vacaciones Metal 2026 | Sistema de Gestión</title>
-    
-    <!-- Fuentes y Librerías Externas -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Vacaciones Metal 2026 | Supabase Edition</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg-page: #f8fafc;
-            --sidebar-w: 300px;
-        }
-        
-        body { 
-            background-color: var(--bg-page); 
-            font-family: 'Inter', sans-serif; 
-            font-size: 14px;
-            color: #1e293b;
-        }
-
-        #loginScreen {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: fixed;
-            inset: 0;
-            background: #0f172a;
-            z-index: 9999;
-        }
-
-        .app-container {
-            display: none; 
-            grid-template-columns: var(--sidebar-w) 1fr;
-            min-height: 100vh;
-        }
-
-        @media (max-width: 1024px) {
-            .app-container { grid-template-columns: 1fr; }
-        }
-
-        .sidebar {
-            background: #ffffff;
-            border-right: 1px solid #e2e8f0;
-            padding: 1.5rem;
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .calendar-wrapper {
-            padding: 1.5rem;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        #calendar {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-            border: 1px solid #e2e8f0;
-            margin-bottom: 2rem;
-            min-height: 600px;
-        }
-
-        .summary-table {
-            width: 100%;
-            background: white;
-            border-radius: 0.75rem;
-            overflow: hidden;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        }
-
-        .summary-table th {
-            background: #f1f5f9;
-            text-align: left;
-            padding: 0.75rem 1rem;
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+        .fc-day-sun, .fc-day-sat { background-color: #fff1f2 !important; }
+        .festivo-nacional { background-color: #fee2e2 !important; color: #b91c1c !important; font-weight: bold; }
+        .festivo-local { background-color: #dcfce7 !important; color: #15803d !important; font-weight: bold; }
+        .sidebar { height: 100vh; overflow-y: auto; }
+        #mainApp { display: none; }
+        .active-user { border-left: 4px solid #2563eb; background: #eff6ff; }
+        .fc-event-vacation {
+            background-color: #10b981 !important; 
+            border: none !important;
+            color: white !important;
             font-size: 0.75rem;
-            text-transform: uppercase;
-            color: #64748b;
-        }
-
-        .summary-table td {
-            padding: 0.75rem 1rem;
-            border-top: 1px solid #f1f5f9;
-        }
-
-        .fc .fc-toolbar-title { font-weight: 700; color: #0f172a; font-size: 1.25rem !important; }
-        .fc-multimonth-header { background: #f8fafc; padding: 6px !important; border-radius: 4px; }
-        .fc-multimonth-title { font-weight: 700 !important; color: #1e293b !important; text-transform: capitalize; }
-        .fc-daygrid-day-number { font-size: 0.8rem; color: #64748b; }
-        
-        .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 3px !important; cursor: pointer; }
-
-        .festivo-nacional { background-color: #fee2e2 !important; opacity: 0.8; }
-        .festivo-local { background-color: #dcfce7 !important; opacity: 0.8; }
-
-        .card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; padding: 1rem; margin-bottom: 1rem; }
-        
-        .btn-primary {
-            background: #0f172a; color: white; padding: 0.6rem 1rem; border-radius: 0.5rem;
-            font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-        }
-        .btn-primary:hover { background: #334155; }
-
-        .btn-outline {
-            background: transparent; border: 1px solid #e2e8f0; color: #475569; padding: 0.6rem 1rem; border-radius: 0.5rem;
-            font-weight: 600; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-        }
-        .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
-
-        .active-view { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
-
-        #historyDrawer {
-            position: fixed;
-            right: -400px;
-            top: 0;
-            width: 400px;
-            height: 100vh;
-            background: white;
-            box-shadow: -10px 0 25px -5px rgba(0,0,0,0.1);
-            z-index: 10001;
-            transition: right 0.3s ease-in-out;
-            display: flex;
-            flex-direction: column;
-        }
-        #historyDrawer.open { right: 0; }
-        
-        #historyOverlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.3);
-            z-index: 10000;
-            display: none;
-        }
-
-        #selectionModal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #syncIndicator {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            border-radius: 99px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            z-index: 100;
+            padding: 2px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <!-- Pantalla de Login -->
-    <div id="loginScreen">
+    <!-- LOGIN -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
-            <div class="text-center mb-8">
-                <h2 class="text-3xl font-extrabold text-slate-900">Acceso Privado</h2>
-                <p class="text-slate-500 mt-2">Gestión de Vacaciones 2026</p>
-            </div>
-            <form id="loginForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold mb-1 text-slate-700">Usuario</label>
-                    <input type="text" id="username" class="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="admin" required>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold mb-1 text-slate-700">Contraseña</label>
-                    <input type="password" id="password" class="w-full border border-slate-300 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••" required>
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition">Entrar al Sistema</button>
-                <p id="loginError" class="text-red-500 text-xs text-center hidden">Credenciales incorrectas.</p>
-            </form>
-            <div class="mt-6 text-center text-[10px] text-slate-400">
-                Torrelavega Metal - Calendario Oficial 2026
+            <h1 class="text-2xl font-bold text-slate-800 mb-2">Acceso Supabase</h1>
+            <p class="text-slate-500 mb-6 text-sm">Introduce tus credenciales de administrador.</p>
+            <div class="space-y-4">
+                <input type="text" id="user" placeholder="Usuario" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                <input type="password" id="pass" placeholder="Contraseña" class="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-emerald-500">
+                <button onclick="handleLogin()" class="w-full bg-emerald-600 text-white py-2 rounded-lg font-bold hover:bg-emerald-700 transition">Entrar</button>
+                <p id="error" class="text-red-500 text-xs hidden text-center">Credenciales incorrectas.</p>
             </div>
         </div>
     </div>
 
-    <!-- Modal Selección Jornada -->
-    <div id="selectionModal">
-        <div class="bg-white p-6 rounded-xl shadow-xl w-80 space-y-4">
-            <h3 class="font-bold text-slate-800 text-lg">Tipo de Jornada</h3>
-            <p class="text-xs text-slate-500">Selecciona cómo quieres imputar estos días:</p>
-            <div class="grid grid-cols-1 gap-2">
-                <button onclick="window.confirmarSeleccion('completo')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center">
-                    <span>Día Completo</span>
-                    <span class="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold">1.0</span>
-                </button>
-                <button onclick="window.confirmarSeleccion('mañana')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center">
-                    <span>Mañana (M)</span>
-                    <span class="text-[10px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded font-bold">0.5</span>
-                </button>
-                <button onclick="window.confirmarSeleccion('tarde')" class="w-full text-left p-3 border rounded-lg hover:bg-slate-50 flex justify-between items-center">
-                    <span>Tarde (T)</span>
-                    <span class="text-[10px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded font-bold">0.5</span>
+    <!-- APP -->
+    <div id="mainApp" class="grid grid-cols-1 md:grid-cols-[300px_1fr] h-screen">
+        <aside class="sidebar bg-white border-r p-6 flex flex-col">
+            <div class="mb-8 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-emerald-700">Metal 2026</h2>
+                <button onclick="fetchData()" class="p-1 hover:bg-slate-100 rounded" title="Refrescar">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                 </button>
             </div>
-            <button onclick="window.cerrarModal()" class="w-full py-2 text-slate-400 text-xs font-bold uppercase hover:text-slate-600">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- Historial Lateral -->
-    <div id="historyOverlay" onclick="window.toggleHistory(false)"></div>
-    <div id="historyDrawer">
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h2 class="text-xl font-bold text-slate-800">Historial de Cambios</h2>
-            <button onclick="window.toggleHistory(false)" class="text-slate-400 hover:text-slate-600">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-        </div>
-        <div id="historyList" class="flex-1 overflow-y-auto"></div>
-    </div>
-
-    <div class="app-container" id="mainApp">
-        <aside class="sidebar space-y-6">
-            <div class="mb-4">
-                <h1 class="text-2xl font-extrabold tracking-tight text-slate-900">Vacaciones<span class="text-blue-600">2026</span></h1>
-                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Torrelavega Metal</p>
-            </div>
-
-            <div class="flex-1 space-y-4 overflow-y-auto pr-2">
-                <div class="card">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Empleado Activo</label>
-                    <select id="empSelector" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500">
-                        <optgroup label="OFICINA (G1)">
-                            <option value="Raúl Villegas">Raúl Villegas</option>
-                            <option value="Igor Santamaría">Igor Santamaría</option>
-                            <option value="Adrian">Adrian</option>
-                            <option value="Nacho Galán">Nacho Galán</option>
-                        </optgroup>
-                        <optgroup label="TALLER">
-                            <option value="Jesus Fernández">Jesus Fernández</option>
-                            <option value="Luis Portilla">Luis Portilla</option>
-                            <option value="Jorge Barreda">Jorge Barreda</option>
-                        </optgroup>
-                    </select>
-                </div>
-
-                <div class="card">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Saldos Restantes (Máx 25 d.)</label>
-                    <div id="statsContainer" class="space-y-4"></div>
-                </div>
-
-                <button onclick="window.toggleHistory(true)" class="btn-outline w-full group">Ver Historial</button>
-
-                <div class="card">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-3">Leyenda Calendario</label>
-                    <div class="space-y-2 text-[11px]">
-                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-red-100 border border-red-200 rounded"></span><span>Fiesta Nacional / Reg. / Conv.</span></div>
-                        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-100 border border-green-200 rounded"></span><span>Fiesta Local (Torrelavega)</span></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="pt-4 border-t border-slate-100 space-y-2">
-                <button id="btnExport" class="btn-primary w-full shadow-sm">Generar PDF</button>
-                <button id="btnLogout" class="w-full text-slate-400 text-[10px] font-bold uppercase hover:text-red-500 transition-colors py-2">Cerrar Sesión</button>
+            <div class="mb-6">
+                <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-4">Plantilla</label>
+                <div id="userList" class="space-y-2"></div>
             </div>
         </aside>
 
-        <main class="calendar-wrapper">
-            <header class="flex justify-between items-center mb-6">
-                <div class="flex items-center gap-4 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
-                    <button id="btnPrev" class="p-2 hover:bg-slate-100 rounded-lg">←</button>
-                    <span id="currentDateDisplay" class="font-bold text-slate-700 px-4 min-w-[100px] text-center">2026</span>
-                    <button id="btnNext" class="p-2 hover:bg-slate-100 rounded-lg">→</button>
-                </div>
-                <div class="flex gap-2 p-1 bg-white border border-slate-200 rounded-xl shadow-sm">
-                    <button id="btnViewYear" class="px-4 py-2 rounded-lg text-sm font-semibold active-view">Anual</button>
-                    <button id="btnViewMonth" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-500">Mensual</button>
+        <main class="overflow-y-auto bg-white">
+            <header class="p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <h3 id="currentUserTitle" class="font-bold text-lg text-slate-800">Selecciona un empleado</h3>
+                <div class="flex gap-2">
+                    <button onclick="calendar.changeView('multiMonthYear')" class="px-3 py-1 bg-slate-100 rounded text-xs hover:bg-slate-200">Año</button>
+                    <button onclick="calendar.changeView('dayGridMonth')" class="px-3 py-1 bg-slate-100 rounded text-xs hover:bg-slate-200">Mes</button>
                 </div>
             </header>
-
-            <div id='calendar'></div>
-
-            <section class="mt-8">
-                <h3 class="text-lg font-bold text-slate-800 mb-4">Tabla de Asignaciones</h3>
-                <div class="summary-table overflow-x-auto">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Empleado</th><th>Desde</th><th>Hasta</th><th>Tipo</th><th>Días</th><th>Acción</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
+            <div class="p-6">
+                <div id="calendar" class="max-w-4xl mx-auto mb-8"></div>
+                <div id="registrosContainer" class="hidden">
+                    <h4 class="font-bold text-slate-700 mb-4 text-sm uppercase">Asignaciones de <span id="spanUser"></span></h4>
+                    <div class="border rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 text-[10px] uppercase">
+                                <tr>
+                                    <th class="p-4">Periodo</th>
+                                    <th class="p-4 text-center">Días</th>
+                                    <th class="p-4 text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
-            </section>
+            </div>
         </main>
     </div>
 
-    <!-- Indicador de Sincronización -->
-    <div id="syncIndicator">
-        <span id="syncStatusDot" class="w-2 h-2 rounded-full bg-orange-400"></span>
-        <span id="syncText">Iniciando...</span>
+    <!-- MODAL -->
+    <div id="modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[100]">
+        <div class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm mx-4">
+            <h4 class="text-lg font-bold mb-1">Confirmar Registro</h4>
+            <p id="rangeText" class="text-sm text-slate-500 mb-6"></p>
+            <div class="grid grid-cols-1 gap-3">
+                <button id="btnFull" onclick="saveVacation(1.0)" class="p-4 border rounded-xl hover:bg-emerald-50 text-left transition group border-slate-200">
+                    <div class="font-bold text-emerald-600">Jornada Completa (1.0)</div>
+                    <div class="text-[10px] text-slate-400">Descuenta días enteros laborables</div>
+                </button>
+                <button id="btnHalf" onclick="saveVacation(0.5)" class="p-4 border rounded-xl hover:bg-amber-50 text-left transition border-slate-200">
+                    <div class="font-bold text-amber-600">Media Jornada (0.5)</div>
+                    <div class="text-[10px] text-slate-400">Cada día cuenta como medio día</div>
+                </button>
+            </div>
+            <button onclick="closeModal()" class="w-full mt-4 text-slate-400 text-sm hover:text-slate-600 transition">Cerrar</button>
+        </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // CONFIGURACIÓN FIREBASE
-        const manualFirebaseConfig = {
-            apiKey: "AIzaSyB3yRAv83hjwy_6jRqGzj2AzZ-V2iQ4iy0",
-            authDomain: "vacaciones-torrelavega.firebaseapp.com",
-            projectId: "vacaciones-torrelavega",
-            storageBucket: "vacaciones-torrelavega.firebasestorage.app",
-            messagingSenderId: "77778108267",
-            appId: "1:77778108267:web:e942576bb82be5c3bf562e"
-        };
-
-        const firebaseConfig = (typeof __firebase_config !== 'undefined') ? JSON.parse(__firebase_config) : manualFirebaseConfig;
-        const appId = (typeof __app_id !== 'undefined') ? __app_id : 'mi-app-vacaciones-metal';
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let userAuth = null;
-        let vacaciones = [];
-        let calendar = null;
-        let tempSelection = null;
-
-        // Fiestas y Convenio 2026 ACTUALIZADO
-        // Se ha eliminado el 2 de noviembre (2026-11-02)
-        const FESTIVOS_NACIONALES = [
-            "2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", 
-            "2026-07-28", "2026-08-15", "2026-10-12", "2026-12-07",
-            "2026-12-08", "2026-12-25", "2026-12-24", "2026-12-31" 
-        ];
+    <script>
+        // Configuración de Supabase
+        const SUPABASE_URL = "https://ibsztkfrkumibvllxhqn.supabase.co"; 
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlic3p0a2Zya3VtaWJ2bGx4aHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NzYxMTYsImV4cCI6MjA4NzQ1MjExNn0.igRwNr_mNV4NVWlo_DzpFZ3jbnMPvqmhlX7FRbs4bKs"; 
         
-        // Fiestas Locales Actualizadas: 17 Ago (San Roque), 15 Sep (Bien Aparecida) y 16 Sep (San Cipriano)
-        const FESTIVOS_LOCALES = ["2026-08-17", "2026-09-15", "2026-09-16"];
-        const TODOS_LOS_FESTIVOS = [...FESTIVOS_NACIONALES, ...FESTIVOS_LOCALES];
-        const MAX_DIAS_VACACIONES = 25;
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        const EMPLEADOS = [
-            { nombre: "Raúl Villegas", color: "#7c3aed" },
-            { nombre: "Igor Santamaría", color: "#1e40af" }, 
-            { nombre: "Adrian", color: "#3b82f6" },          
-            { nombre: "Nacho Galán", color: "#60a5fa" },      
-            { nombre: "Jesus Fernández", color: "#065f46" }, 
-            { nombre: "Luis Portilla", color: "#10b981" },    
-            { nombre: "Jorge Barreda", color: "#34d399" }
-        ];
+        let calendar, selectedRange, currentUser, vacacionesData = [];
 
-        // --- FUNCIONES CORE ---
-        window.toggleHistory = (open) => {
-            const drawer = document.getElementById('historyDrawer');
-            const overlay = document.getElementById('historyOverlay');
-            if(open) { drawer.classList.add('open'); overlay.style.display = 'block'; }
-            else { drawer.classList.remove('open'); overlay.style.display = 'none'; }
+        const employees = ["Raúl Villegas", "Igor Santamaría", "Adrian Blanco", "Nacho Galán", "Jesus Lopez", "Luis Sanchez", "Jorge M."];
+        const festivos = {
+            nacionales: ["2026-01-01", "2026-01-06", "2026-04-02", "2026-04-03", "2026-05-01", "2026-07-28", "2026-08-15", "2026-10-12", "2026-12-07", "2026-12-08", "2026-12-24", "2026-12-25", "2026-12-31"],
+            locales: ["2026-08-17", "2026-09-15", "2026-09-16"]
         };
 
-        window.cerrarModal = () => {
-            document.getElementById('selectionModal').style.display = 'none';
-            tempSelection = null;
-            if (calendar) calendar.unselect();
-        };
-
-        const esLaborable = (fecha) => {
-            const d = new Date(fecha);
-            const iso = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-            const diaSemana = d.getDay(); // 0: Dom, 6: Sab
-            return diaSemana !== 0 && diaSemana !== 6 && !TODOS_LOS_FESTIVOS.includes(iso);
-        };
-
-        const contarLaborables = (sStr, eStr, factor = 1) => {
-            let c = 0; 
-            let cur = new Date(sStr); 
-            let stop = new Date(eStr);
-            while (cur < stop) { 
-                if (esLaborable(cur)) { c += factor; }
-                cur.setDate(cur.getDate() + 1); 
+        function handleLogin() {
+            const u = document.getElementById('user').value;
+            const p = document.getElementById('pass').value;
+            if(u === 'admin' && p === 'metal2026') {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'grid';
+                initApp();
+            } else {
+                document.getElementById('error').classList.remove('hidden');
             }
-            return c;
-        };
+        }
 
-        window.confirmarSeleccion = async (tipo) => {
-            if(!tempSelection || !userAuth) return;
-            const { info, empData, nombre } = tempSelection;
-            let factor = (tipo === 'completo') ? 1 : 0.5;
-            let labelSuffix = (tipo === 'mañana') ? ' (M)' : (tipo === 'tarde') ? ' (T)' : '';
+        async function initApp() {
+            await fetchData();
+            renderUserList();
+            initCalendar();
+        }
+
+        async function fetchData() {
+            const { data, error } = await supabaseClient
+                .from('vacaciones_2026')
+                .select('*')
+                .order('fecha_inicio', { ascending: true });
             
-            const diasLaborablesContados = contarLaborables(info.startStr, info.endStr, factor);
-
-            if(diasLaborablesContados <= 0) {
-                alert("La selección no contiene días laborables efectivos.");
-                window.cerrarModal(); return;
+            if(!error) {
+                vacacionesData = data || [];
+                if(calendar) updateCalendarEvents();
+                renderUserList();
+                if(currentUser) renderTable();
+            } else {
+                console.error("Fetch Error:", error);
             }
+        }
 
-            const gastados = vacaciones.filter(v => v.title.startsWith(nombre)).reduce((t,v) => t + v.valorTotal, 0);
-            if (gastados + diasLaborablesContados > MAX_DIAS_VACACIONES) { 
-                alert(`Error: Supera los 25 días.`); 
-                window.cerrarModal(); return; 
-            }
+        function updateCalendarEvents() {
+            if(!calendar) return;
+            calendar.removeAllEvents();
+            
+            // Si hay un usuario seleccionado, mostramos sus eventos
+            const filtered = currentUser 
+                ? vacacionesData.filter(v => v.empleado === currentUser)
+                : vacacionesData;
 
-            const nuevo = { 
-                id: Date.now().toString(), 
-                title: nombre + labelSuffix, 
-                start: info.startStr, 
-                end: info.endStr, 
-                backgroundColor: empData.color,
-                borderColor: empData.color,
-                textColor: '#ffffff',
+            const events = filtered.map(v => ({
+                id: v.id,
+                title: `${Number(v.dias).toFixed(1)}d - ${v.empleado}`,
+                start: v.fecha_inicio,
+                end: v.fecha_fin,
                 allDay: true,
-                tipo: tipo,
-                valorTotal: diasLaborablesContados
-            };
-
-            try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', nuevo.id), nuevo);
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', nuevo.id), {
-                    accion: 'ASIGNACIÓN', detalle: `${nuevo.title}: ${nuevo.valorTotal} días`, timestamp: Date.now(), fecha: new Date().toLocaleString()
-                });
-            } catch (e) { console.error("Error al guardar:", e); }
+                className: 'fc-event-vacation'
+            }));
             
-            window.cerrarModal();
-        };
-
-        async function deleteVacation(vId) {
-            if (!userAuth) return;
-            const vData = vacaciones.find(v => v.id === vId);
-            if(!vData || !confirm(`¿Eliminar vacaciones de ${vData.title}?`)) return;
-            try {
-                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'vacaciones', vId));
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'history', Date.now().toString()), {
-                    accion: 'ELIMINACIÓN', detalle: `Borrado: ${vData.title}`, timestamp: Date.now(), fecha: new Date().toLocaleString()
-                });
-            } catch (e) { console.error("Error al borrar:", e); }
+            calendar.addEventSource(events);
         }
 
-        function actualizarUI() {
-            const stats = document.getElementById('statsContainer');
-            const tableBody = document.getElementById('tableBody');
-            if(!stats || !tableBody) return;
-            
-            stats.innerHTML = ''; tableBody.innerHTML = '';
-            
-            EMPLEADOS.forEach(emp => {
-                const diasGastados = vacaciones.filter(v => v.title && v.title.startsWith(emp.nombre)).reduce((t, v) => t + v.valorTotal, 0);
-                const restantes = MAX_DIAS_VACACIONES - diasGastados;
-                const porcentaje = (diasGastados / MAX_DIAS_VACACIONES) * 100;
-
-                stats.innerHTML += `
-                    <div>
-                        <div class="flex justify-between text-[11px] mb-1">
-                            <span class="font-bold text-slate-700">${emp.nombre}</span>
-                            <span class="${restantes < 3 ? 'text-red-500 font-bold' : 'text-slate-400'}">${restantes.toFixed(1)} d.</span>
+        function renderUserList() {
+            const list = document.getElementById('userList');
+            list.innerHTML = employees.map(name => {
+                const used = vacacionesData
+                    .filter(v => v.empleado === name)
+                    .reduce((sum, v) => sum + (parseFloat(v.dias) || 0), 0);
+                const remaining = 25 - used;
+                return `
+                    <div onclick="selectUser('${name}')" class="p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition ${currentUser === name ? 'active-user shadow-sm' : ''}">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-slate-700 text-sm">${name}</span>
+                            <span class="text-[10px] font-bold ${remaining < 5 ? 'text-red-500' : 'text-emerald-600'}">${remaining.toFixed(1)}d</span>
                         </div>
-                        <div class="w-full bg-slate-100 rounded-full h-1">
-                            <div class="h-1 rounded-full transition-all duration-700" style="width: ${porcentaje}%; background-color: ${emp.color}"></div>
-                        </div>
-                    </div>`;
-            });
-
-            vacaciones.sort((a,b) => new Date(a.start) - new Date(b.start)).forEach(v => {
-                const row = document.createElement('tr');
-                row.className = "text-xs hover:bg-slate-50";
-                row.innerHTML = `
-                    <td class="font-bold p-3">${v.title}</td>
-                    <td>${v.start}</td><td>${v.end}</td>
-                    <td class="capitalize">${v.tipo}</td>
-                    <td class="font-bold text-blue-600">${v.valorTotal.toFixed(1)}</td>
-                    <td><button class="delete-btn text-red-400 text-[10px] font-bold hover:text-red-600 transition">BORRAR</button></td>
+                    </div>
                 `;
-                row.querySelector('.delete-btn').onclick = () => deleteVacation(v.id);
-                tableBody.appendChild(row);
-            });
+            }).join('');
         }
 
-        function renderCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            if (!calendarEl) return;
-            
-            calendar = new FullCalendar.Calendar(calendarEl, {
+        function selectUser(name) {
+            currentUser = name;
+            document.getElementById('currentUserTitle').innerText = name;
+            document.getElementById('spanUser').innerText = name;
+            document.getElementById('registrosContainer').classList.remove('hidden');
+            renderUserList();
+            renderTable();
+            updateCalendarEvents();
+        }
+
+        function initCalendar() {
+            const calEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calEl, {
                 initialView: 'multiMonthYear',
                 initialDate: '2026-01-01',
                 locale: 'es',
                 firstDay: 1,
                 selectable: true,
                 headerToolbar: false,
-                events: function(fetchInfo, successCallback, failureCallback) {
-                    const festivosBase = [
-                        ...FESTIVOS_NACIONALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-nacional'] })),
-                        ...FESTIVOS_LOCALES.map(f => ({ start: f, display: 'background', classNames: ['festivo-local'] }))
-                    ];
-                    successCallback([...festivosBase, ...vacaciones]);
-                },
-                datesSet: (i) => {
-                   const display = document.getElementById('currentDateDisplay');
-                   if(display) display.innerText = i.view.title;
+                dayCellDidMount: (info) => {
+                    const dateStr = info.date.toISOString().split('T')[0];
+                    if(festivos.nacionales.includes(dateStr)) info.el.classList.add('festivo-nacional');
+                    if(festivos.local && festivos.locales.includes(dateStr)) info.el.classList.add('festivo-local');
                 },
                 select: (info) => {
-                    const nombre = document.getElementById('empSelector').value;
-                    const empData = EMPLEADOS.find(e => e.nombre === nombre);
-                    tempSelection = { info, empData, nombre };
-                    document.getElementById('selectionModal').style.display = 'flex';
-                },
-                eventClick: (info) => { 
-                    if(info.event.display !== 'background') deleteVacation(info.event.id); 
+                    if(!currentUser) {
+                        alert("Por favor, selecciona un empleado primero.");
+                        calendar.unselect();
+                        return;
+                    }
+                    selectedRange = info;
+                    document.getElementById('rangeText').innerText = `${info.startStr} al ${info.endStr}`;
+                    document.getElementById('modal').style.display = 'flex';
                 }
             });
             calendar.render();
+            updateCalendarEvents();
         }
 
-        async function startApp() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (e) { console.error("Auth Error:", e); }
-        }
+        async function saveVacation(factor) {
+            document.getElementById('btnFull').disabled = true;
+            document.getElementById('btnHalf').disabled = true;
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                userAuth = user;
-                const vCol = collection(db, 'artifacts', appId, 'public', 'data', 'vacaciones');
-                onSnapshot(vCol, (snap) => {
-                    vacaciones = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (calendar) calendar.refetchEvents();
-                    actualizarUI();
-                    document.getElementById('syncStatusDot').className = "w-2 h-2 rounded-full bg-green-500";
-                    document.getElementById('syncText').innerText = "Conectado";
-                });
-
-                const hCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
-                onSnapshot(hCol, (snap) => {
-                    const history = snap.docs.map(d => d.data()).sort((a,b) => b.timestamp - a.timestamp).slice(0, 50);
-                    const list = document.getElementById('historyList');
-                    if(list) {
-                        list.innerHTML = history.map(h => `
-                            <div class="p-3 border-b text-xs">
-                                <div class="flex justify-between font-bold text-blue-600 mb-1"><span>${h.accion}</span><span class="text-slate-400 text-[10px]">${h.fecha}</span></div>
-                                <div class="text-slate-600">${h.detalle}</div>
-                            </div>`).join('');
-                    }
-                });
-
-                if(sessionStorage.getItem('metalAuth') === 'true') {
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'grid';
-                    if(!calendar) setTimeout(renderCalendar, 100);
-                }
+            let count = 0;
+            let curr = new Date(selectedRange.start);
+            const end = new Date(selectedRange.end);
+            
+            while(curr < end) {
+                const d = curr.getDay();
+                const s = curr.toISOString().split('T')[0];
+                const isFeriado = festivos.nacionales.includes(s) || (festivos.locales && festivos.locales.includes(s));
+                // Lunes a Viernes y no feriado
+                if(d !== 0 && d !== 6 && !isFeriado) count += factor;
+                curr.setDate(curr.getDate() + 1);
             }
-        });
 
-        document.getElementById('loginForm').onsubmit = (e) => {
-            e.preventDefault();
-            const u = document.getElementById('username').value;
-            const p = document.getElementById('password').value;
-            if(u === 'admin' && p === 'metal2026') {
-                sessionStorage.setItem('metalAuth', 'true');
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'grid';
-                if(!calendar) renderCalendar();
+            if(count <= 0) {
+                alert("La selección no incluye días laborables.");
+                closeModal();
+                return;
+            }
+
+            const payload = { 
+                empleado: currentUser, 
+                fecha_inicio: selectedRange.startStr, 
+                fecha_fin: selectedRange.endStr, 
+                dias: count 
+            };
+
+            const { error } = await supabaseClient
+                .from('vacaciones_2026')
+                .insert([payload]);
+
+            if(error) {
+                alert("Error al guardar: " + error.message);
+                console.error(error);
             } else {
-                document.getElementById('loginError').classList.remove('hidden');
+                await fetchData();
             }
-        };
 
-        document.getElementById('btnLogout').onclick = () => {
-            sessionStorage.removeItem('metalAuth');
-            location.reload();
-        };
+            document.getElementById('btnFull').disabled = false;
+            document.getElementById('btnHalf').disabled = false;
+            closeModal();
+        }
 
-        document.getElementById('btnNext').onclick = () => calendar.next();
-        document.getElementById('btnPrev').onclick = () => calendar.prev();
-        document.getElementById('btnViewYear').onclick = function() { 
-            calendar.changeView('multiMonthYear'); 
-            this.classList.add('active-view'); document.getElementById('btnViewMonth').classList.remove('active-view');
-        };
-        document.getElementById('btnViewMonth').onclick = function() { 
-            calendar.changeView('dayGridMonth'); 
-            this.classList.add('active-view'); document.getElementById('btnViewYear').classList.remove('active-view');
-        };
+        function renderTable() {
+            const filtered = vacacionesData.filter(v => v.empleado === currentUser);
+            const body = document.getElementById('tableBody');
+            body.innerHTML = filtered.length ? filtered.map(v => `
+                <tr class="border-b last:border-0 hover:bg-slate-50 transition">
+                    <td class="p-4 text-slate-600 font-medium">${v.fecha_inicio} <span class="text-slate-300 mx-1">→</span> ${v.fecha_fin}</td>
+                    <td class="p-4 text-center font-bold text-emerald-600">${parseFloat(v.dias).toFixed(1)}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="deleteRecord('${v.id}')" class="text-red-400 hover:text-red-600 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('') : '<tr><td colspan="3" class="p-8 text-center text-slate-400 italic">No hay registros para este empleado</td></tr>';
+        }
 
-        startApp();
+        async function deleteRecord(id) {
+            if(!confirm("¿Estás seguro de eliminar este registro?")) return;
+            const { error } = await supabaseClient
+                .from('vacaciones_2026')
+                .delete()
+                .eq('id', id);
+
+            if(!error) {
+                await fetchData();
+            } else {
+                alert("Error al eliminar: " + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            if(calendar) calendar.unselect();
+        }
     </script>
 </body>
 </html>
