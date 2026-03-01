@@ -14,85 +14,70 @@
         #mainApp { display: none; }
         .active-user { border-left: 4px solid #2563eb; background: #eff6ff; }
         
-        /* --- ARQUITECTURA DE EVENTOS PARA MULTI-RECURSO --- */
-        .fc-event {
-            border: none !important;
-            margin: 1px 2px !important;
-            border-radius: 4px !important;
-            transition: transform 0.1s ease;
-        }
-
-        .fc-event:hover {
-            transform: scale(1.02);
-            z-index: 50;
-        }
-
+        .fc-event { border: none !important; margin: 1px 2px !important; border-radius: 4px !important; cursor: pointer; transition: transform 0.1s; position: relative; }
+        .fc-event:hover { transform: scale(1.02); opacity: 0.9; }
         .fc-event-main {
             padding: 2px 6px !important;
             font-weight: 800 !important;
             font-size: 0.65rem !important;
-            text-transform: uppercase;
             color: white !important;
-            letter-spacing: 0.025em;
-            display: flex;
-            align-items: center;
-            height: 18px; 
+            text-transform: uppercase;
         }
+        .fc-daygrid-day-frame { min-height: 100px !important; }
+        .event-festivo { background-color: #ef4444 !important; border: 1px solid #b91c1c !important; }
 
-        /* Ajuste de las celdas para que no colapsen y quepan varios recursos */
-        .fc-daygrid-day-frame {
-            min-height: 100px !important;
-        }
-
-        .fc-daygrid-event-harness {
-            margin-bottom: 2px !important;
-        }
-
-        .event-festivo {
-            background-color: #ef4444 !important;
-            border: 1px solid #b91c1c !important;
-        }
-
-        .event-festivo .fc-event-main {
-            justify-content: center;
-            font-style: italic;
-            letter-spacing: 0.1em;
-        }
-
-        /* --- UI GENERAL --- */
-        #toast { 
-            position: fixed; top: 20px; right: 20px; z-index: 2000; 
-            transform: translateY(-100px); transition: transform 0.3s ease;
-        }
+        #toast { position: fixed; top: 20px; right: 20px; z-index: 2000; transform: translateY(-100px); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #toast.show { transform: translateY(0); }
-
         .bg-festivos { background-color: #fef2f2 !important; }
+        
+        .fc-event::after {
+            content: '✕';
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: white;
+            font-weight: bold;
+            opacity: 0.5;
+        }
+
+        @media print {
+            .no-print, #calendar, .sidebar, #loginScreen, header button, #toast, .btn-nav-year, header .flex.gap-2 { display: none !important; }
+            body { background: white; }
+            #mainApp { display: block !important; grid-template-columns: 1fr !important; }
+            #mainContent { overflow: visible !important; width: 100% !important; }
+            .sidebar { display: none !important; }
+            #registrosContainer { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            table { font-size: 10pt; width: 100% !important; border-collapse: collapse; }
+            .shadow-xl, .shadow-md { box-shadow: none !important; border: 1px solid #eee; }
+            .p-8 { padding: 0 !important; }
+            #displayYear { font-size: 1.5rem !important; }
+            #currentUserTitle { margin-top: 10px; display: block; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="toast" class="bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-3 border-2 border-red-400">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
+    <div id="toast" class="bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-3 border-2 border-slate-700">
+        <div id="toastIndicator" class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
         <span id="toastMsg"></span>
     </div>
 
     <div id="loginScreen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
-            <h1 class="text-2xl font-black text-slate-800 mb-2">Adarsa Torrelavega</h1>
+            <h1 class="text-2xl font-black text-slate-800 mb-2 italic">Adarsa Torrelavega</h1>
             <p class="text-slate-500 mb-6 text-sm uppercase tracking-widest font-bold italic">Portal de Planificación</p>
             <div class="space-y-4">
                 <input type="text" id="user" placeholder="Usuario" class="w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500">
-                <input type="password" id="pass" placeholder="Contraseña" class="w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500" onkeypress="if(event.key === 'Enter') handleLogin()">
-                <button onclick="handleLogin()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-black hover:bg-black transition transform active:scale-95">ACCEDER AL PANEL</button>
-                <p id="error" class="text-red-500 text-[10px] hidden font-bold mt-2 uppercase tracking-tighter">Acceso denegado: Revise sus credenciales</p>
+                <input type="password" id="pass" placeholder="Contraseña" class="w-full px-4 py-3 border-2 rounded-xl outline-none focus:border-blue-500">
+                <button onclick="handleLogin()" class="w-full bg-slate-800 text-white py-3 rounded-xl font-black hover:bg-black transition transform active:scale-95 uppercase tracking-widest">ACCEDER</button>
             </div>
         </div>
     </div>
 
     <div id="mainApp" class="grid grid-cols-1 md:grid-cols-[300px_1fr] h-screen">
-        <aside class="sidebar bg-white border-r p-6 flex flex-col shadow-xl z-20">
+        <aside class="sidebar bg-white border-r p-6 flex flex-col shadow-xl z-20 no-print">
             <div class="mb-8 border-b pb-4">
                 <h2 class="text-xl font-black text-slate-800 italic">ADARSA</h2>
                 <p class="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">Torrelavega</p>
@@ -107,51 +92,61 @@
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">TALLER</label>
                     <div id="list-taller" class="space-y-1"></div>
                 </div>
+                <div id="list-others-container" class="hidden">
+                    <label class="text-[10px] font-black text-red-400 uppercase tracking-widest block mb-3">REGISTROS ANTIGUOS/HUÉRFANOS</label>
+                    <div id="list-others" class="space-y-1"></div>
+                </div>
             </div>
 
+            <!-- Botones de Acción en Barra Lateral -->
             <div class="mt-auto pt-6 space-y-3">
-                <button id="btnConfigFestivos" onclick="toggleModoFestivos()" class="w-full py-4 border-2 border-red-500 text-red-500 rounded-xl font-black text-[10px] tracking-[0.2em] uppercase hover:bg-red-600 hover:border-red-600 hover:text-white transition-all duration-200 shadow-sm">
+                <button id="btnConfigFestivos" onclick="toggleModoFestivos()" class="w-full py-4 border-2 border-red-500 text-red-500 rounded-xl font-black text-[10px] tracking-[0.2em] uppercase hover:bg-red-600 hover:text-white transition-all">
                     Gestión de Festivos
                 </button>
-                <p class="text-[9px] font-bold text-slate-400 text-center uppercase tracking-widest italic">Personal de Postventa</p>
+                <button onclick="window.print()" class="w-full flex items-center justify-center gap-2 py-4 bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-lg active:scale-95">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                    Imprimir Reporte (PDF)
+                </button>
             </div>
         </aside>
 
         <main id="mainContent" class="overflow-y-auto bg-slate-50">
-            <header class="p-6 border-b bg-white flex justify-between items-center sticky top-0 z-10 shadow-sm">
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-                        <button onclick="changeYear('prev')" class="p-2 hover:bg-white rounded-lg transition shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+            <header class="p-6 border-b bg-white flex flex-wrap justify-between items-center sticky top-0 z-10 shadow-sm no-print gap-4">
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center bg-slate-100 p-1.5 rounded-2xl gap-2 border border-slate-200 shadow-sm no-print">
+                        <button id="prevYear" onclick="navYear(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border-2 border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all active:scale-90 disabled:opacity-30">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                         </button>
-                        <span id="yearDisplay" class="px-6 font-black text-slate-700 italic text-lg">2026</span>
-                        <button onclick="changeYear('next')" class="p-2 hover:bg-white rounded-lg transition shadow-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                        <div class="px-6 flex flex-col items-center">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">AÑO</span>
+                            <span id="displayYear" class="text-xl font-black text-slate-800 leading-none italic">2026</span>
+                        </div>
+                        <button id="nextYear" onclick="navYear(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white border-2 border-slate-100 text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-all active:scale-90 disabled:opacity-30">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                         </button>
                     </div>
-                    <div>
-                        <h3 id="currentUserTitle" class="font-black text-2xl text-slate-800 tracking-tight italic leading-tight uppercase">SIN SELECCIÓN</h3>
-                        <p id="subTitleHeader" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Panel Principal de Vacaciones</p>
-                    </div>
+                    <h3 id="currentUserTitle" class="font-black text-2xl text-slate-800 italic uppercase">SIN SELECCIÓN</h3>
                 </div>
-                <div class="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-                    <button onclick="calendar.changeView('multiMonthYear')" class="px-5 py-2 rounded-lg text-[10px] font-black tracking-widest hover:bg-white transition uppercase">Año Completo</button>
-                    <button onclick="calendar.changeView('dayGridMonth')" class="px-5 py-2 rounded-lg text-[10px] font-black tracking-widest hover:bg-white transition uppercase">Vista Mensual</button>
+                
+                <div class="flex gap-2">
+                    <button onclick="fetchData()" class="p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-all shadow-sm group" title="Actualizar Datos">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-slate-400 group-hover:rotate-180 transition-transform duration-500"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    </button>
                 </div>
             </header>
             
             <div class="p-8">
-                <div id="calendar" class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 max-w-6xl mx-auto mb-8"></div>
-                
-                <div id="registrosContainer" class="hidden max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-                    <h4 class="font-black text-slate-700 mb-4 text-sm uppercase tracking-widest italic border-l-4 border-blue-600 pl-4"><span id="spanUser"></span></h4>
-                    <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-md">
+                <div id="calendar" class="bg-white p-6 rounded-3xl shadow-xl border border-slate-200 max-w-6xl mx-auto mb-12 no-print"></div>
+                <div id="registrosContainer" class="hidden max-w-6xl mx-auto">
+                    <h4 id="spanUser" class="font-black text-slate-700 mb-4 text-sm uppercase italic border-l-4 border-blue-600 pl-4"></h4>
+                    <div class="bg-white border rounded-2xl overflow-hidden shadow-md">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-50 text-slate-400 text-[10px] uppercase font-black">
                                 <tr>
-                                    <th class="p-4">Fechas</th>
-                                    <th class="p-4 text-center">Impacto Días</th>
-                                    <th class="p-4 text-right">Gestión</th>
+                                    <th class="p-4">Periodo</th>
+                                    <th class="p-4">Nombre en Base de Datos</th>
+                                    <th class="p-4 text-center">Días</th>
+                                    <th class="p-4 text-right no-print">Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody"></tbody>
@@ -162,23 +157,15 @@
         </main>
     </div>
 
-    <div id="modal" class="fixed inset-0 bg-slate-900/90 hidden items-center justify-center z-[100] backdrop-blur-md">
+    <div id="modal" class="fixed inset-0 bg-slate-900/90 hidden items-center justify-center z-[100] backdrop-blur-md no-print">
         <div class="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-sm mx-4 text-center border-4 border-slate-100">
-            <h4 id="modalTitle" class="text-2xl font-black text-slate-800 mb-2 italic uppercase tracking-tighter">Tipo de Jornada</h4>
+            <h4 class="text-2xl font-black text-slate-800 mb-2 italic uppercase">Tipo de Jornada</h4>
             <p id="rangeText" class="text-[10px] font-black text-slate-400 mb-8 uppercase tracking-[0.2em] bg-slate-100 py-2 rounded-lg"></p>
-            
             <div class="space-y-4">
-                <button onclick="saveSelection(1.0)" class="w-full p-5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition transform active:scale-95 shadow-xl">
-                    <div class="font-black text-lg italic">Día Completo</div>
-                    <div class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Resta 1.0</div>
-                </button>
-                <button onclick="saveSelection(0.5)" class="w-full p-5 border-2 border-blue-600 text-blue-600 rounded-2xl hover:bg-blue-50 transition transform active:scale-95">
-                    <div class="font-black text-lg italic">Media Jornada</div>
-                    <div class="text-[10px] font-bold opacity-80 uppercase tracking-widest">Resta 0.5</div>
-                </button>
+                <button onclick="saveSelection(1.0)" class="w-full p-5 bg-blue-600 text-white rounded-2xl font-black text-lg italic shadow-xl">Día Completo</button>
+                <button onclick="saveSelection(0.5)" class="w-full p-5 border-2 border-blue-600 text-blue-600 rounded-2xl font-black text-lg italic">Media Jornada</button>
             </div>
-
-            <button onclick="closeModal()" class="mt-8 text-slate-400 text-[10px] font-black hover:text-red-500 transition tracking-[0.3em] uppercase">Cancelar</button>
+            <button onclick="closeModal()" class="mt-8 text-slate-400 text-[10px] font-black uppercase">Cancelar</button>
         </div>
     </div>
 
@@ -188,11 +175,12 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let calendar, selectedRange, currentUser, modoFestivos = false, vacacionesData = [];
+        let currentYear = 2026; 
 
         const employeeConfig = {
             "Raúl Villegas": { color: "#10b981", grupo: "admin" },
             "Igor Santamaría": { color: "#3b82f6", grupo: "admin" },
-            "Adrian Blanco": { color: "#f59e0b", grupo: "admin" },
+            "Adrián Gómez": { color: "#f59e0b", grupo: "admin" },
             "Nacho Galán": { color: "#8b5cf6", grupo: "admin" },
             "Jesús Fernández": { color: "#f97316", grupo: "taller" },
             "Luis Portilla": { color: "#06b6d4", grupo: "taller" },
@@ -201,13 +189,13 @@
 
         const employees = Object.keys(employeeConfig);
 
-        function showToast(msg, isError = true) {
-            const toast = document.getElementById('toast');
-            const toastMsg = document.getElementById('toastMsg');
-            toastMsg.innerText = msg;
-            toast.className = `fixed top-20 right-20 z-[1000] px-6 py-4 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-3 border-2 transition transform duration-300 ${isError ? 'bg-red-600 border-red-400' : 'bg-blue-600 border-blue-400'} text-white`;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 4000);
+        function showToast(msg, type = 'info') {
+            const t = document.getElementById('toast');
+            const ind = document.getElementById('toastIndicator');
+            document.getElementById('toastMsg').innerText = msg;
+            ind.className = `w-2 h-2 rounded-full animate-pulse ${type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 4000);
         }
 
         function handleLogin() {
@@ -217,21 +205,20 @@
                 document.getElementById('loginScreen').style.display = 'none';
                 document.getElementById('mainApp').style.display = 'grid';
                 initApp();
-            } else {
-                document.getElementById('error').classList.remove('hidden');
             }
         }
 
         async function initApp() {
-            await fetchData();
             initCalendar();
+            updateYearUI();
+            await fetchData();
             renderUserList();
         }
 
         async function fetchData() {
             const { data } = await supabaseClient.from('vacaciones_2026').select('*');
             vacacionesData = data || [];
-            if(calendar) updateCalendarEvents();
+            updateCalendarEvents();
             renderUserList();
             if(currentUser || modoFestivos) renderTable();
         }
@@ -239,99 +226,250 @@
         function initCalendar() {
             calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
                 initialView: 'multiMonthYear',
-                initialDate: '2026-01-01',
+                initialDate: `${currentYear}-01-01`,
                 locale: 'es',
                 firstDay: 1,
                 selectable: true,
                 headerToolbar: false,
-                dayMaxEvents: false, 
-                eventDisplay: 'block',
-                contentHeight: 'auto',
+                eventClick: function(info) {
+                    const recordId = info.event.id;
+                    const dbName = info.event.extendedProps.dbName;
+                    if (confirm(`¿Eliminar registro de "${dbName}"?`)) {
+                        deleteRecordDirect(recordId);
+                    }
+                },
                 select: async (info) => {
                     if(!currentUser && !modoFestivos) { 
-                        showToast("Haga clic en un empleado de la lista lateral.");
                         calendar.unselect(); 
                         return; 
                     }
                     
                     selectedRange = info;
+                    const entity = modoFestivos ? 'FESTIVO_CENTRO' : currentUser;
+                    const startSelected = info.startStr.split('T')[0];
 
-                    if(!modoFestivos) {
-                        const existingRecord = vacacionesData.find(v => 
-                            v.empleado === currentUser && 
-                            v.fecha_inicio === info.startStr && 
-                            v.fecha_fin === info.endStr
-                        );
-                        if (existingRecord) {
+                    const existingRecord = vacacionesData.find(v => {
+                        const startSaved = v.fecha_inicio.split('T')[0];
+                        return v.empleado === entity && startSaved === startSelected;
+                    });
+
+                    if (existingRecord) {
+                        if (confirm(`¿Eliminar ${modoFestivos ? 'festivo' : 'selección'} del día ${startSelected}?`)) {
                             await deleteRecordDirect(existingRecord.id);
-                            calendar.unselect();
-                            return;
                         }
-
-                        const festivos = vacacionesData.filter(v => v.empleado === 'FESTIVO_CENTRO');
-                        const vacacionesOtros = vacacionesData.filter(v => v.empleado !== 'FESTIVO_CENTRO');
-                        const userGroup = employeeConfig[currentUser].grupo;
-                        
-                        let curr = new Date(info.start);
-                        while(curr < info.end) {
-                            const dateStr = curr.toISOString().split('T')[0];
-                            
-                            if(festivos.some(f => dateStr >= f.fecha_inicio && dateStr < f.fecha_fin)) {
-                                showToast(`Día festivo/cierre el ${dateStr}`);
-                                calendar.unselect(); return;
-                            }
-
-                            const recursosEseDia = vacacionesOtros.filter(v => dateStr >= v.fecha_inicio && dateStr < v.fecha_fin);
-                            if (recursosEseDia.some(r => employeeConfig[r.empleado]?.grupo === userGroup)) {
-                                showToast(`Conflicto: ${userGroup.toUpperCase()} ya tiene a alguien el día ${dateStr}`);
-                                calendar.unselect(); return;
-                            }
-                            if (recursosEseDia.length >= 2) {
-                                showToast(`Cupo completo (máx 2) para el día ${dateStr}`);
-                                calendar.unselect(); return;
-                            }
-                            curr.setDate(curr.getDate() + 1);
-                        }
+                        calendar.unselect();
+                        return;
                     }
 
-                    if(modoFestivos) {
+                    if(modoFestivos) { 
                         saveSelection(0); 
                     } else {
-                        let dEnd = new Date(info.end); dEnd.setDate(dEnd.getDate() - 1);
-                        document.getElementById('rangeText').innerText = `${info.startStr} HASTA ${dEnd.toISOString().split('T')[0]}`;
+                        let dEnd = new Date(info.end); 
+                        dEnd.setDate(dEnd.getDate() - 1);
+                        document.getElementById('rangeText').innerText = `${startSelected} AL ${dEnd.toISOString().split('T')[0]}`;
                         document.getElementById('modal').style.display = 'flex';
                     }
                 }
             });
             calendar.render();
-            updateCalendarEvents();
         }
 
-        function changeYear(direction) {
-            if(direction === 'prev') calendar.prev();
-            else calendar.next();
-            const currentYear = calendar.getDate().getFullYear();
-            document.getElementById('yearDisplay').innerText = currentYear;
+        function navYear(offset) {
+            const target = currentYear + offset;
+            if (target < 2026) return; 
+            
+            currentYear = target;
+            updateYearUI();
+            
+            calendar.gotoDate(`${currentYear}-01-01`);
+            updateCalendarEvents();
             renderUserList();
-            if(currentUser || modoFestivos) renderTable();
+            if(currentUser || modoFestivos) {
+                document.getElementById('spanUser').innerText = modoFestivos 
+                    ? `FESTIVOS DEL CENTRO (${currentYear})` 
+                    : `REGISTROS DE ${currentUser.toUpperCase()} (${currentYear})`;
+                renderTable();
+            }
+        }
+
+        function updateYearUI() {
+            document.getElementById('displayYear').innerText = currentYear;
+            document.getElementById('prevYear').disabled = currentYear <= 2026;
+        }
+
+        function updateCalendarEvents() {
+            calendar.removeAllEvents();
+            const yearPrefix = currentYear.toString();
+            const filteredData = vacacionesData.filter(v => v.fecha_inicio.startsWith(yearPrefix));
+            
+            const events = filteredData.map(v => {
+                let displayTitle = "FESTIVO";
+                if (v.empleado !== 'FESTIVO_CENTRO') {
+                    const config = employeeConfig[v.empleado];
+                    displayTitle = config ? v.empleado.split(' ')[0] : `[?] ${v.empleado}`;
+                }
+
+                return {
+                    id: v.id,
+                    title: displayTitle,
+                    start: v.fecha_inicio, 
+                    end: v.fecha_fin,
+                    backgroundColor: v.empleado === 'FESTIVO_CENTRO' ? '#ef4444' : (employeeConfig[v.empleado]?.color || '#94a3b8'),
+                    className: v.empleado === 'FESTIVO_CENTRO' ? 'event-festivo' : '',
+                    extendedProps: {
+                        dbName: v.empleado
+                    }
+                };
+            });
+            calendar.addEventSource(events);
+        }
+
+        function isRangeAvailable(startStr, endStr, user) {
+            const start = new Date(startStr);
+            const end = new Date(endStr);
+            const userGroup = employeeConfig[user]?.grupo;
+            
+            let current = new Date(start);
+            while (current < end) {
+                const dateStr = current.toISOString().split('T')[0];
+                const resourcesOnDate = vacacionesData.filter(v => {
+                    const vStart = new Date(v.fecha_inicio);
+                    const vEnd = new Date(v.fecha_fin);
+                    return current >= vStart && current < vEnd && v.empleado !== 'FESTIVO_CENTRO';
+                });
+
+                if (resourcesOnDate.length >= 2) {
+                    return { available: false, reason: `Día ${dateStr} completo (Max 2 pers).` };
+                }
+                
+                const groupsActive = resourcesOnDate.map(v => employeeConfig[v.empleado]?.grupo);
+                if (groupsActive.includes(userGroup)) {
+                    const isAnotherFromSameGroup = resourcesOnDate.some(v => v.empleado !== user && employeeConfig[v.empleado]?.grupo === userGroup);
+                    if(isAnotherFromSameGroup) {
+                        return { available: false, reason: `Ya hay un compañero de ${userGroup.toUpperCase()} el día ${dateStr}.` };
+                    }
+                }
+                current.setDate(current.getDate() + 1);
+            }
+            return { available: true };
         }
 
         async function saveSelection(factor) {
-            let count = 0;
+            const entity = modoFestivos ? 'FESTIVO_CENTRO' : currentUser;
+            const startSelected = selectedRange.startStr.split('T')[0];
+
+            if (!modoFestivos) {
+                const validation = isRangeAvailable(selectedRange.startStr, selectedRange.endStr, currentUser);
+                if (!validation.available) {
+                    showToast(validation.reason, 'error');
+                    closeModal();
+                    return;
+                }
+            }
+
+            let count = 0; 
             let curr = new Date(selectedRange.start);
             while(curr < selectedRange.end) {
                 if(curr.getDay() !== 0 && curr.getDay() !== 6) count += factor;
                 curr.setDate(curr.getDate() + 1);
             }
-            
+
             await supabaseClient.from('vacaciones_2026').insert([{ 
-                empleado: modoFestivos ? 'FESTIVO_CENTRO' : currentUser, 
+                empleado: entity, 
                 fecha_inicio: selectedRange.startStr, 
                 fecha_fin: selectedRange.endStr, 
                 dias: count 
             }]);
-            await fetchData();
+
+            await fetchData(); 
             closeModal();
+            showToast(modoFestivos ? "Festivo registrado" : "Vacaciones guardadas");
+        }
+
+        function renderUserList() {
+            const adminL = document.getElementById('list-admin');
+            const tallerL = document.getElementById('list-taller');
+            const othersL = document.getElementById('list-others');
+            const othersContainer = document.getElementById('list-others-container');
+            
+            if(!adminL || !tallerL) return;
+            adminL.innerHTML = ''; tallerL.innerHTML = ''; othersL.innerHTML = '';
+            const yearPrefix = currentYear.toString();
+
+            employees.forEach(name => {
+                const used = vacacionesData
+                    .filter(v => v.empleado === name && v.fecha_inicio.startsWith(yearPrefix))
+                    .reduce((s, v) => s + v.dias, 0);
+                
+                const color = employeeConfig[name].color;
+                const html = `
+                    <div onclick="selectUser('${name}')" class="group p-3 rounded-xl cursor-pointer flex justify-between items-center transition-all ${currentUser === name ? 'active-user shadow-md font-black bg-slate-50' : 'opacity-80 hover:opacity-100 hover:bg-slate-50'}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: ${color}"></div>
+                            <span class="text-xs text-slate-700 font-medium">${name}</span>
+                        </div>
+                        <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500">${(25-used).toFixed(1)}</span>
+                    </div>`;
+                if(employeeConfig[name].grupo === 'admin') adminL.innerHTML += html;
+                else tallerL.innerHTML += html;
+            });
+
+            const dbEmployees = [...new Set(vacacionesData.map(v => v.empleado))];
+            const huérfanos = dbEmployees.filter(name => name !== 'FESTIVO_CENTRO' && !employeeConfig[name]);
+            if (huérfanos.length > 0) {
+                othersContainer.classList.remove('hidden');
+                huérfanos.forEach(name => {
+                    othersL.innerHTML += `
+                        <div onclick="selectUser('${name}')" class="group p-3 rounded-xl cursor-pointer flex justify-between items-center transition-all ${currentUser === name ? 'active-user shadow-md font-black bg-red-50' : 'opacity-60 hover:opacity-100 hover:bg-red-50'}">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2.5 h-2.5 rounded-full bg-slate-400"></div>
+                                <span class="text-xs text-slate-500 italic font-medium">${name}</span>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                othersContainer.classList.add('hidden');
+            }
+        }
+
+        function selectUser(name) {
+            if(modoFestivos) toggleModoFestivos();
+            currentUser = name;
+            document.getElementById('currentUserTitle').innerText = name;
+            document.getElementById('spanUser').innerText = `REGISTROS DE ${name.toUpperCase()} (${currentYear})`;
+            document.getElementById('registrosContainer').classList.remove('hidden');
+            renderUserList(); 
+            renderTable();
+        }
+
+        function renderTable() {
+            const yearPrefix = currentYear.toString();
+            const filtered = vacacionesData.filter(v => 
+                v.empleado === (modoFestivos ? 'FESTIVO_CENTRO' : currentUser) &&
+                v.fecha_inicio.startsWith(yearPrefix)
+            );
+
+            document.getElementById('tableBody').innerHTML = filtered.map(v => {
+                let dF = new Date(v.fecha_fin);
+                dF.setDate(dF.getDate() - 1);
+                const start = v.fecha_inicio.split('T')[0];
+                const end = dF.toISOString().split('T')[0];
+                return `
+                <tr class="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                    <td class="p-4 font-bold text-slate-600 text-xs uppercase tracking-tighter">${start} >> ${end}</td>
+                    <td class="p-4 text-xs font-mono text-slate-400">${v.empleado}</td>
+                    <td class="p-4 text-center font-black text-xs text-blue-600">${v.empleado === 'FESTIVO_CENTRO' ? 'F' : v.dias + 'd'}</td>
+                    <td class="p-4 text-right no-print">
+                        <button onclick="deleteRecordDirect('${v.id}')" class="text-red-400 hover:text-red-600 text-[9px] font-black uppercase border border-red-100 px-2 py-1 rounded transition-all">Borrar</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function deleteRecordDirect(id) {
+            await supabaseClient.from('vacaciones_2026').delete().eq('id', id); 
+            await fetchData(); 
+            showToast("Registro eliminado correctamente");
         }
 
         function toggleModoFestivos() {
@@ -341,91 +479,23 @@
             if(modoFestivos) {
                 btn.classList.add('bg-red-600', 'text-white');
                 main.classList.add('bg-festivos');
-                document.getElementById('currentUserTitle').innerText = "GESTIÓN DE FESTIVOS";
+                document.getElementById('currentUserTitle').innerText = "MODO FESTIVOS";
                 currentUser = null;
                 document.getElementById('registrosContainer').classList.remove('hidden');
-                document.getElementById('spanUser').innerText = "LISTADO DE FESTIVOS REGISTRADOS";
-                renderUserList(); renderTable();
+                document.getElementById('spanUser').innerText = "FESTIVOS DEL CENTRO (" + currentYear + ")";
+                renderTable();
             } else {
                 btn.classList.remove('bg-red-600', 'text-white');
                 main.classList.remove('bg-festivos');
                 document.getElementById('registrosContainer').classList.add('hidden');
-                document.getElementById('currentUserTitle').innerText = "SIN SELECCIÓN";
             }
+            renderUserList();
         }
 
-        function updateCalendarEvents() {
-            calendar.removeAllEvents();
-            const events = vacacionesData.map(v => ({
-                title: v.empleado === 'FESTIVO_CENTRO' ? 'FESTIVO' : `${v.empleado.split(' ')[0]}`,
-                start: v.fecha_inicio, 
-                end: v.fecha_fin,
-                backgroundColor: v.empleado === 'FESTIVO_CENTRO' ? '#ef4444' : employeeConfig[v.empleado]?.color,
-                className: v.empleado === 'FESTIVO_CENTRO' ? 'event-festivo' : ''
-            }));
-            calendar.addEventSource(events);
+        function closeModal() { 
+            document.getElementById('modal').style.display = 'none'; 
+            calendar.unselect(); 
         }
-
-        function renderUserList() {
-            const adminL = document.getElementById('list-admin');
-            const tallerL = document.getElementById('list-taller');
-            adminL.innerHTML = ''; tallerL.innerHTML = '';
-            const currYear = calendar?.getDate().getFullYear() || 2026;
-
-            employees.forEach(name => {
-                const used = vacacionesData
-                    .filter(v => v.empleado === name && v.fecha_inicio.startsWith(currYear.toString()))
-                    .reduce((s, v) => s + v.dias, 0);
-                
-                const html = `
-                    <div onclick="selectUser('${name}')" class="p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition flex justify-between items-center ${currentUser === name ? 'active-user shadow-md' : 'opacity-80'}">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full" style="background: ${employeeConfig[name].color}"></div>
-                            <span class="text-xs font-bold text-slate-700">${name}</span>
-                        </div>
-                        <span class="text-[10px] font-black px-2 py-1 rounded bg-slate-100 text-slate-500">${(25-used).toFixed(1)}</span>
-                    </div>`;
-                
-                if(employeeConfig[name].grupo === 'admin') adminL.innerHTML += html;
-                else tallerL.innerHTML += html;
-            });
-        }
-
-        function selectUser(name) {
-            if(modoFestivos) toggleModoFestivos();
-            currentUser = name;
-            document.getElementById('currentUserTitle').innerText = name;
-            document.getElementById('spanUser').innerText = `REGISTROS DE ${name}`;
-            document.getElementById('registrosContainer').classList.remove('hidden');
-            renderUserList(); renderTable();
-        }
-
-        function renderTable() {
-            const currYear = calendar.getDate().getFullYear().toString();
-            const filtered = vacacionesData.filter(v => v.empleado === (modoFestivos ? 'FESTIVO_CENTRO' : currentUser) && v.fecha_inicio.startsWith(currYear));
-
-            document.getElementById('tableBody').innerHTML = filtered.map(v => {
-                let dF = new Date(v.fecha_fin); dF.setDate(dF.getDate() - 1);
-                return `
-                <tr class="border-b last:border-0 hover:bg-slate-50 transition">
-                    <td class="p-4 font-bold text-slate-600 italic text-xs uppercase">${v.fecha_inicio} >> ${dF.toISOString().split('T')[0]}</td>
-                    <td class="p-4 text-center font-black text-xs text-blue-600 uppercase">${v.empleado === 'FESTIVO_CENTRO' ? 'FESTIVO' : v.dias + ' DÍAS'}</td>
-                    <td class="p-4 text-right">
-                        <button onclick="deleteRecordDirect('${v.id}')" class="text-red-400 hover:text-red-600 font-black text-[9px] tracking-widest uppercase border border-red-100 px-3 py-1 rounded-full">Eliminar</button>
-                    </td>
-                </tr>`;
-            }).join('');
-        }
-
-        async function deleteRecordDirect(id) {
-            if(confirm("¿Eliminar registro permanentemente?")) { 
-                await supabaseClient.from('vacaciones_2026').delete().eq('id', id); 
-                showToast("Registro eliminado.", false);
-                await fetchData(); 
-            }
-        }
-
-        function closeModal() { document.getElementById('modal').style.display = 'none'; calendar.unselect(); }
     </script>
 </body>
 </html>
