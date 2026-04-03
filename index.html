@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Adarsa Torrelavega | Gestión 2026</title>
+    <title>Adarsa Torrelavega | Acceso Privado</title>
+    <!-- Bibliotecas Externas -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11,141 +12,291 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #f8fafc; touch-action: manipulation; }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: #f8fafc; 
+            touch-action: manipulation; 
+            overflow-x: hidden;
+        }
+
+        /* Estilos de Calendario */
         .fc-day-sun, .fc-day-sat { background-color: #fff1f2 !important; }
-        .fc-daygrid-day-frame { min-height: 100px !important; }
+        .fc-daygrid-day-frame { min-height: 110px !important; }
+        
+        /* Resaltado de selección personalizado */
+        .fc-highlight {
+            background: rgba(59, 130, 246, 0.25) !important;
+        }
+
+        .fc-event {
+            background: transparent !important;
+            border: none !important;
+            margin: 1px 0 !important;
+            cursor: pointer !important;
+        }
+
+        .fc-event-main {
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+
         .custom-event-pill {
-            display: flex; align-items: center; padding: 2px 6px; border-radius: 6px;
-            color: white; font-size: 10px; font-weight: 800; margin-bottom: 2px;
-            width: 100%; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            line-height: 1.2; overflow: hidden;
+            display: flex; 
+            align-items: center; 
+            padding: 3px 8px; 
+            border-radius: 6px;
+            color: white; 
+            font-size: 10px;
+            font-weight: 700; 
+            width: auto;
+            min-width: 100%;
+            white-space: nowrap;
+            position: relative; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            z-index: 10;
+            transition: transform 0.1s;
         }
-        .event-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
-        .btn-delete {
-            width: 14px; height: 14px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;
-            display: flex; align-items: center; justify-content: center; font-size: 8px;
-            cursor: pointer; flex-shrink: 0; margin-left: 2px;
+        
+        .custom-event-pill:active {
+            transform: scale(0.95);
         }
-        .fc-event { background: transparent !important; border: none !important; padding: 0 2px !important; }
+
+        .event-emoji { margin-right: 4px; flex-shrink: 0; }
+        .event-label { display: inline-block; overflow: visible; flex-grow: 1; }
+
+        /* Sidebar y UI */
         #sidebar { transition: transform 0.3s ease; z-index: 100; }
         @media (max-width: 768px) {
             #sidebar { position: fixed; inset: 0 auto 0 0; width: 280px; transform: translateX(-100%); }
             #sidebar.open { transform: translateX(0); }
         }
-        .type-btn { @apply flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-slate-100 bg-white cursor-pointer transition-all hover:border-blue-200; }
-        .type-btn-active { @apply border-blue-600 bg-blue-50 ring-4 ring-blue-100; }
-        #toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(200%); z-index: 2000; transition: transform 0.3s; }
+
+        .user-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            border-width: 2px;
+        }
+        
+        .user-card-active {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.02);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Botón cerrar estilo Windows en tarjeta lateral */
+        .card-close-btn {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 24px;
+            height: 24px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            background: #e2e8f0;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 900;
+            transition: all 0.2s;
+            z-index: 20;
+            border: none;
+            cursor: pointer;
+        }
+
+        .user-card-active .card-close-btn {
+            display: flex;
+        }
+
+        .card-close-btn:hover {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+
+        #toast { 
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(200%); 
+            z-index: 2000; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
         #toast.show { transform: translateX(-50%) translateY(0); }
+
+        .settings-scroll::-webkit-scrollbar { width: 4px; }
+        .settings-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Animación Login */
+        .login-fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
-    <div id="toast" class="bg-slate-900 text-white px-6 py-3 rounded-xl shadow-2xl font-bold text-sm">
+    <div id="toast" class="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl font-bold text-sm flex items-center gap-3 text-center">
         <span id="toastMsg"></span>
     </div>
 
-    <!-- Login Screen -->
-    <div id="loginScreen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-[200] p-4">
-        <div class="bg-white p-8 md:p-12 rounded-[2.5rem] w-full max-w-md text-center shadow-2xl">
-            <div class="mb-8">
-                <h1 class="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-tight">Gestión de vacaciones</h1>
-                <h2 class="text-xl font-bold text-blue-600 uppercase tracking-widest mt-1">Adarsa Torrelavega</h2>
+    <!-- Pantalla de Login -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-950 flex items-center justify-center z-[300] p-4">
+        <div class="bg-white p-8 md:p-12 rounded-[3rem] w-full max-w-md text-center shadow-2xl border-4 border-slate-800 login-fade-in">
+            <div class="mb-10">
+                <div class="inline-block p-4 bg-slate-900 rounded-3xl mb-4">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+                <h1 class="text-3xl font-black text-slate-900 uppercase tracking-tighter italic">Adarsa</h1>
+                <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.4em] mt-2">Portal de Acceso</h2>
             </div>
-            
             <div class="space-y-4">
                 <div class="text-left">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-1 block">Usuario</label>
-                    <input type="text" id="userInput" autocomplete="off" aria-autocomplete="none" class="w-full px-6 py-4 bg-slate-100 rounded-xl font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all" placeholder="Nombre de usuario">
+                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-1 block">Usuario</label>
+                    <input type="text" id="userInput" class="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="Ej: admin">
                 </div>
-                
                 <div class="text-left">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-1 block">Contraseña</label>
-                    <input type="password" id="pass" autocomplete="new-password" aria-autocomplete="none" class="w-full px-6 py-4 bg-slate-100 rounded-xl font-bold outline-none focus:ring-4 focus:ring-blue-100 transition-all" placeholder="••••••••">
+                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-1 block">Contraseña</label>
+                    <input type="password" id="passInput" class="w-full px-6 py-4 bg-slate-50 rounded-2xl font-bold border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20" placeholder="••••••••">
                 </div>
-                
-                <button onclick="handleLogin()" class="w-full bg-blue-600 text-white py-5 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-[0.98] mt-4">Entrar al sistema</button>
+                <button onclick="handleLogin()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl mt-4">Iniciar Sesión</button>
             </div>
-            
-            <p class="mt-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acceso restringido · 2026</p>
         </div>
     </div>
 
+    <!-- App Principal -->
     <div id="mainApp" class="hidden h-screen flex flex-col md:flex-row overflow-hidden">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="bg-white border-r p-6 flex flex-col w-[300px] shrink-0 overflow-y-auto shadow-sm">
-            <!-- Header Logo -->
-            <div class="mb-8 px-2">
-                <h2 class="text-2xl font-black italic leading-none text-slate-900 tracking-tighter">Adarsa</h2>
-                <p class="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] mt-1.5 opacity-80">Torrelavega</p>
+        <aside id="sidebar" class="bg-white border-r p-6 flex flex-col w-[320px] shrink-0 overflow-y-auto shadow-sm">
+            <div class="mb-8 px-2 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-black italic text-slate-900 tracking-tighter leading-none">Adarsa</h2>
+                    <p class="text-[9px] font-black text-blue-600 uppercase tracking-widest mt-1">Torrelavega</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openSettings()" id="settingsBtn" class="p-2 bg-slate-50 rounded-lg text-slate-400 hover:text-blue-600 transition-colors">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                    </button>
+                    <button onclick="toggleSidebar()" class="md:hidden text-slate-400">✕</button>
+                </div>
             </div>
 
             <div class="flex-1 space-y-6">
                 <div>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Administración</h3>
-                    <div id="list-admin" class="space-y-1"></div>
+                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> Administración
+                    </h3>
+                    <div id="list-admin" class="space-y-3"></div>
                 </div>
                 <div>
-                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 px-2">Taller</h3>
-                    <div id="list-taller" class="space-y-1"></div>
+                    <h3 class="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-2 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span> Taller
+                    </h3>
+                    <div id="list-taller" class="space-y-3"></div>
                 </div>
             </div>
 
-            <button onclick="toggleModoFestivos()" class="mt-6 w-full py-4 bg-red-50 text-red-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-red-100 transition-colors">Configurar Festivos</button>
+            <div class="mt-6 space-y-2">
+                <button id="festivosBtn" onclick="toggleModoFestivos()" class="w-full py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-rose-100">Configurar Festivos</button>
+                <button onclick="logout()" class="w-full py-4 text-slate-400 font-bold text-[9px] uppercase tracking-widest hover:text-rose-500 transition-colors">Cerrar Sesión</button>
+            </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 flex flex-col min-w-0 bg-slate-50">
-            <header class="bg-white border-b px-6 py-4 flex justify-between items-center shrink-0">
-                <button onclick="toggleSidebar()" class="md:hidden p-2 bg-slate-100 rounded-lg">☰</button>
-                <div class="flex items-center gap-4">
-                    <button onclick="navYear(-1)" class="font-bold p-1 text-slate-400 hover:text-blue-600 transition-colors">«</button>
-                    <span id="displayYear" class="font-black text-xl italic text-slate-800">2026</span>
-                    <button onclick="navYear(1)" class="font-bold p-1 text-slate-400 hover:text-blue-600 transition-colors">»</button>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="text-right">
-                        <p id="currentUserTitle" class="font-black text-sm text-blue-600 leading-none">Seleccionar Recurso</p>
-                        <p id="currentStatus" class="text-[9px] text-slate-400 font-bold uppercase mt-1">Gestión Activa</p>
+        <main class="flex-1 flex flex-col min-w-0 bg-[#f1f5f9]">
+            <header class="bg-white border-b px-8 py-5 flex justify-between items-center shrink-0 z-40">
+                <div class="flex items-center gap-6">
+                    <button onclick="toggleSidebar()" class="md:hidden p-3 bg-slate-100 rounded-xl">☰</button>
+                    <div class="flex items-center bg-slate-50 border border-slate-100 rounded-2xl p-1">
+                        <button onclick="navYear(-1)" class="w-10 h-10 flex items-center justify-center font-bold text-slate-400 italic">«</button>
+                        <span id="displayYear" class="px-6 font-black text-lg italic text-slate-800">2026</span>
+                        <button onclick="navYear(1)" class="w-10 h-10 flex items-center justify-center font-bold text-slate-400 italic">»</button>
                     </div>
-                    <button id="btnAnalysis" onclick="openAnalysis()" class="hidden p-3 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all active:scale-95 shadow-md">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10M18 20V4M6 20V16"/></svg>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="text-right flex items-center gap-3">
+                        <div class="hidden sm:block">
+                            <p id="currentUserTitle" class="font-black text-sm text-slate-900 italic">Sin Selección</p>
+                        </div>
+                        <button id="clearUserBtn" onclick="clearUserSelection()" class="hidden p-2 text-slate-300 hover:text-rose-500 transition-colors">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                    <button id="btnAnalysis" onclick="openAnalysis()" class="hidden w-12 h-12 flex items-center justify-center bg-slate-900 text-white rounded-2xl shadow-lg">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 20V10M18 20V4M6 20V16"/></svg>
                     </button>
                 </div>
             </header>
             
-            <div class="flex-1 p-4 overflow-y-auto">
-                <div id="calendar" class="bg-white p-4 rounded-3xl shadow-sm border border-slate-200"></div>
+            <div class="flex-1 p-4 md:p-6 overflow-y-auto">
+                <div id="calendar" class="bg-white p-4 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-200"></div>
             </div>
         </main>
     </div>
 
-    <!-- Modals (Registro y Análisis) omitidos por brevedad pero funcionales en el script -->
-    <div id="modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center z-[150] p-4 backdrop-blur-sm">
-        <div class="bg-white p-8 rounded-[2rem] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-            <h4 class="text-center font-black text-slate-900 mb-6 text-xl" id="modalTitle">Registrar ausencia</h4>
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <div onclick="selectType('vacaciones')" id="btn-vacaciones" class="type-btn text-xs font-black">🏖️ VACACIONES</div>
-                <div onclick="selectType('baja')" id="btn-baja" class="type-btn text-xs font-black">🤒 BAJA</div>
-                <div onclick="selectType('curso')" id="btn-curso" class="type-btn text-xs font-black">📚 CURSO</div>
-                <div onclick="selectType('otros')" id="btn-otros" class="type-btn text-xs font-black">📝 OTROS</div>
+    <!-- Modal de Registro -->
+    <div id="modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-[150] p-4 backdrop-blur-md">
+        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-md shadow-2xl border-4 border-white">
+            <h4 class="text-center font-black text-slate-900 mb-8 text-xl uppercase italic tracking-tight">Seleccionar Ausencia</h4>
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <button onclick="selectType('vacaciones')" id="btn-vacaciones" class="flex flex-col items-center justify-center gap-2 p-6 rounded-3xl border-2 border-slate-50 bg-slate-50 font-black text-[10px] uppercase hover:bg-blue-50 transition-all">
+                    <span class="text-3xl mb-1">🏖️</span> VACACIONES
+                </button>
+                <button onclick="selectType('baja')" id="btn-baja" class="flex flex-col items-center justify-center gap-2 p-6 rounded-3xl border-2 border-slate-50 bg-slate-50 font-black text-[10px] uppercase hover:bg-rose-50 transition-all">
+                    <span class="text-3xl mb-1">🤒</span> BAJA
+                </button>
+                <button onclick="selectType('curso')" id="btn-curso" class="flex flex-col items-center justify-center gap-2 p-6 rounded-3xl border-2 border-slate-50 bg-slate-50 font-black text-[10px] uppercase hover:bg-purple-50 transition-all">
+                    <span class="text-3xl mb-1">📚</span> CURSO
+                </button>
+                <button onclick="selectType('otros')" id="btn-otros" class="flex flex-col items-center justify-center gap-2 p-6 rounded-3xl border-2 border-slate-50 bg-slate-50 font-black text-[10px] uppercase hover:bg-slate-100 transition-all">
+                    <span class="text-3xl mb-1">📝</span> OTROS
+                </button>
             </div>
-            <div id="confirmActions" class="hidden space-y-3">
-                <button onclick="confirmSave(1.0)" class="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-xs uppercase hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Día Completo (1.0)</button>
-                <button onclick="confirmSave(0.5)" class="w-full py-4 border-2 border-slate-100 rounded-xl font-black text-slate-500 text-xs uppercase hover:bg-slate-50 transition-all">Medio Día (0.5)</button>
+            <div id="confirmActions" class="hidden space-y-3 mb-4">
+                <button onclick="confirmSave(1.0)" class="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase shadow-lg hover:bg-blue-700 transition-all">Jornada Completa</button>
+                <button onclick="confirmSave(0.5)" class="w-full py-5 border-2 border-slate-100 text-slate-400 rounded-2xl font-black text-[11px] uppercase hover:bg-slate-50 transition-all">Media Jornada</button>
             </div>
-            <button onclick="closeModal()" class="w-full mt-4 text-slate-400 font-bold text-[10px] uppercase hover:text-slate-600 tracking-widest">Cancelar</button>
+            <button onclick="closeModal()" class="w-full mt-2 py-4 border-2 border-slate-50 text-slate-400 hover:bg-slate-50 rounded-2xl font-black text-[10px] uppercase transition-all">Cerrar</button>
         </div>
     </div>
 
-    <div id="modalAnalysis" class="fixed inset-0 bg-slate-900/90 hidden items-center justify-center z-[200] p-4 backdrop-blur-md">
-        <div class="bg-white p-8 rounded-[2.5rem] w-full max-w-3xl relative shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            <button onclick="closeAnalysis()" class="absolute top-6 right-6 font-bold text-slate-400 hover:text-slate-900 text-xl transition-colors">✕</button>
-            <h2 id="analysisUser" class="text-2xl font-black italic mb-6 text-slate-900">Analizando...</h2>
-            <div class="h-80 w-full mb-8"><canvas id="analysisChart"></canvas></div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="analysisStats"></div>
-            <div class="mt-8 pt-6 border-t flex justify-between items-end">
-                <div><p class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Vacaciones Consumidas</p><p id="vacaSum" class="text-4xl font-black text-blue-600">0.0</p></div>
-                <div class="text-right"><p class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Disponibles (Cupo 25.5)</p><p id="restSum" class="text-4xl font-black text-emerald-500">25.5</p></div>
+    <!-- Otros Modales -->
+    <div id="modalAnalysis" class="fixed inset-0 bg-slate-900/90 hidden items-center justify-center z-[200] p-4 backdrop-blur-xl">
+        <div class="bg-white p-8 rounded-[3rem] w-full max-w-4xl relative">
+            <button onclick="closeAnalysis()" class="absolute top-6 right-8 text-slate-300 text-2xl font-black">✕</button>
+            <h2 id="analysisUser" class="text-2xl font-black italic mb-8 text-slate-900 uppercase">Resumen</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 h-72 bg-slate-50 rounded-[2rem] p-6"><canvas id="analysisChart"></canvas></div>
+                <div class="flex flex-col gap-3" id="analysisStats"></div>
+            </div>
+            <div class="mt-8 pt-8 border-t flex justify-between">
+                <div><p class="text-[9px] font-black text-slate-400 uppercase">Disfrutados</p><p id="vacaSum" class="text-5xl font-black text-blue-600 italic">0.0</p></div>
+                <div class="text-right"><p class="text-[9px] font-black text-slate-400 uppercase">Pendientes</p><p id="restSum" class="text-5xl font-black text-emerald-500 italic">25.5</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalSettings" class="fixed inset-0 bg-slate-900/95 hidden items-center justify-center z-[250] p-4 backdrop-blur-md">
+        <div class="bg-white p-8 rounded-[3rem] w-full max-w-lg shadow-2xl relative">
+            <button onclick="closeSettings()" class="absolute top-6 right-8 text-slate-300 text-2xl font-black">✕</button>
+            <h2 class="text-xl font-black italic mb-8 text-slate-900 uppercase">Ajustes</h2>
+            <div class="space-y-8 max-h-[60vh] overflow-y-auto settings-scroll pr-2">
+                <div class="bg-blue-50 p-6 rounded-[2rem] border border-blue-100">
+                    <label class="text-[10px] font-black text-blue-400 uppercase tracking-widest block mb-1">Días máx. para <span id="settingsYearLabel">2026</span></label>
+                    <div class="flex gap-2">
+                        <input type="number" step="0.5" id="inputMaxDays" class="flex-1 bg-white border border-blue-100 rounded-xl px-4 py-3 font-bold">
+                        <button onclick="updateMaxDays()" class="bg-blue-600 text-white px-6 rounded-xl font-black text-[10px] uppercase">Guardar</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Personal</label>
+                    <div class="space-y-2 mb-4" id="settingsEmployeeList"></div>
+                    <div class="bg-slate-50 p-4 rounded-2xl space-y-3">
+                        <input type="text" id="newEmpName" placeholder="Nombre completo" class="w-full bg-white border rounded-xl px-4 py-3 text-sm font-semibold">
+                        <div class="flex gap-2">
+                            <select id="newEmpGroup" class="flex-1 bg-white border rounded-xl px-4 py-3 text-sm font-semibold">
+                                <option value="admin">Administración</option>
+                                <option value="taller">Taller</option>
+                            </select>
+                            <input type="color" id="newEmpColor" value="#3b82f6" class="w-12 h-11 p-1 bg-white border rounded-xl cursor-pointer">
+                        </div>
+                        <button onclick="addEmployee()" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase">Añadir</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -155,11 +306,12 @@
         const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlic3p0a2Zya3VtaWJ2bGx4aHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4NzYxMTYsImV4cCI6MjA4NzQ1MjExNn0.igRwNr_mNV4NVWlo_DzpFZ3jbnMPvqmhlX7FRbs4bKs"; 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         const TABLE_NAME = "vacaciones_2026"; 
-        const MAX_VACATIONS = 25.5;
 
-        let calendar, currentUser = null, selectedInfo, currentYear = 2026, rawData = [], selectedType = null, modoFestivos = false, chart = null;
-
-        const employees = {
+        const USERS = { "admin": { pass: "metal2026", role: "admin" }, "taller": { pass: "taller2026", role: "viewer" } };
+        let currentYear = 2026, activeUserSession = JSON.parse(localStorage.getItem('adarsa_session')) || null;
+        let yearlyMaxConfig = JSON.parse(localStorage.getItem('yearlyMaxConfig')) || { "2026": 25.5 };
+        
+        const DEFAULT_EMPLOYEES = {
             "Raúl Villegas": { color: "#10b981", grupo: "admin" },
             "Igor Santamaría": { color: "#3b82f6", grupo: "admin" },
             "Adrián Gómez": { color: "#f59e0b", grupo: "admin" },
@@ -169,6 +321,9 @@
             "Jorge Barreda": { color: "#f43f5e", grupo: "taller" }
         };
 
+        let employees = JSON.parse(localStorage.getItem('employees')) || DEFAULT_EMPLOYEES;
+
+        let calendar, currentUser = null, selectedInfo = null, rawData = [], selectedType = null, modoFestivos = false, chart = null;
         const types = {
             'vacaciones': { label: 'Vacaciones', emoji: '🏖️', color: '#3b82f6' },
             'baja': { label: 'Bajas', emoji: '🤒', color: '#f43f5e' },
@@ -177,133 +332,305 @@
             'festivo': { label: 'Festivo', emoji: '🚩', color: '#ef4444' }
         };
 
-        function showToast(m) { 
-            const t = document.getElementById('toast');
-            document.getElementById('toastMsg').innerText = m; 
-            t.classList.add('show'); 
-            setTimeout(() => t.classList.remove('show'), 2500); 
-        }
-        
-        function handleLogin() {
-            const user = document.getElementById('userInput').value;
-            const pass = document.getElementById('pass').value;
-            // Se mantiene la lógica de contraseña solicitada, usuario informativo
-            if(pass === "metal2026" && user.trim() !== "") {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainApp').classList.remove('hidden');
-                init();
-            } else if (user.trim() === "") {
-                showToast("👤 Introduce un usuario");
-            } else {
-                showToast("❌ Credenciales incorrectas");
-            }
+        function formatName(str) {
+            if (!str) return "";
+            if (str === "FESTIVO") return "FESTIVOS";
+            const clean = str.toLowerCase();
+            return clean.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
         }
 
+        function handleLogin() {
+            const user = document.getElementById('userInput').value.toLowerCase();
+            const pass = document.getElementById('passInput').value;
+            if(USERS[user] && USERS[user].pass === pass) {
+                activeUserSession = USERS[user];
+                localStorage.setItem('adarsa_session', JSON.stringify(activeUserSession));
+                applySession();
+                showToast("✅ Acceso concedido");
+            } else showToast("❌ Credenciales incorrectas");
+        }
+
+        function applySession() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.remove('hidden');
+            if(activeUserSession.role === 'viewer') {
+                document.getElementById('settingsBtn').style.display = 'none';
+                document.getElementById('festivosBtn').style.display = 'none';
+            }
+            init();
+        }
+
+        function logout() { localStorage.removeItem('adarsa_session'); location.reload(); }
+
         async function init() {
-            calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-                initialView: window.innerWidth < 768 ? 'dayGridMonth' : 'multiMonthYear',
-                initialDate: `${currentYear}-01-01`,
-                locale: 'es', 
-                firstDay: 1, 
-                selectable: true,
-                unselectAuto: false,
-                headerToolbar: window.innerWidth < 768 ? { left: 'prev,next', center: 'title', right: '' } : false,
-                eventContent: (arg) => {
-                    let div = document.createElement('div');
-                    div.className = 'custom-event-pill';
-                    div.style.backgroundColor = arg.event.backgroundColor;
-                    div.innerHTML = `<span class="event-label">${arg.event.title}</span>`;
-                    let del = document.createElement('div');
-                    del.className = 'btn-delete'; del.innerText = '✕';
-                    del.onclick = (e) => { e.stopPropagation(); deleteEntry(arg.event.id); };
-                    div.appendChild(del);
-                    return { domNodes: [div] };
-                },
-                select: (info) => {
-                    selectedInfo = info;
-                    if(modoFestivos) { selectedType = 'festivo'; confirmSave(0); } 
-                    else if(currentUser) { resetModal(); document.getElementById('modal').style.display = 'flex'; } 
-                    else { showToast("👤 Selecciona un empleado primero"); calendar.unselect(); }
-                }
-            });
-            calendar.render();
+            if(!calendar) {
+                calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+                    initialView: window.innerWidth < 768 ? 'dayGridMonth' : 'multiMonthYear',
+                    initialDate: `${currentYear}-01-01`,
+                    locale: 'es', firstDay: 1, selectable: activeUserSession.role === 'admin',
+                    unselectAuto: true,
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
+                    eventContent: (arg) => {
+                        let div = document.createElement('div');
+                        div.className = 'custom-event-pill';
+                        div.style.backgroundColor = arg.event.backgroundColor;
+                        const displayName = formatName(arg.event.title.split(' ')[0]); 
+                        div.innerHTML = `<span class="event-emoji">${arg.event.extendedProps.emoji}</span><span class="event-label">${displayName}</span>`;
+                        return { domNodes: [div] };
+                    },
+                    // Lógica para detectar clics en días que ya tienen registros
+                    dateClick: async (info) => {
+                        if(activeUserSession.role !== 'admin') return;
+                        const targetUser = modoFestivos ? 'FESTIVO' : currentUser;
+                        if (!targetUser) return;
+                        const existing = rawData.find(r => r.fecha_inicio === info.dateStr && r.empleado === targetUser);
+                        if (existing) {
+                            await deleteEntry(existing.id);
+                            calendar.unselect();
+                        }
+                    },
+                    select: (info) => {
+                        if(activeUserSession.role !== 'admin') return;
+                        
+                        const targetUser = modoFestivos ? 'FESTIVO' : currentUser;
+                        if (!targetUser) {
+                            showToast("👤 Selecciona un empleado");
+                            calendar.unselect();
+                            return;
+                        }
+
+                        // Comprobar si el primer día seleccionado ya tiene un registro
+                        // Si lo tiene, el dateClick ya se encarga de borrarlo o simplemente cancelamos la apertura del modal
+                        const existing = rawData.find(r => r.fecha_inicio === info.startStr && r.empleado === targetUser);
+                        if (existing) {
+                            calendar.unselect();
+                            return; // No abrimos el modal si ya existe algo en el punto de inicio
+                        }
+
+                        selectedInfo = info;
+                        if(modoFestivos) { selectedType = 'festivo'; confirmSave(0); }
+                        else { resetModal(); document.getElementById('modal').style.display = 'flex'; }
+                    }
+                });
+                calendar.render();
+            }
             await loadData();
         }
 
         async function loadData() {
             const { data, error } = await supabaseClient.from(TABLE_NAME).select('*');
-            if(error) { showToast("Error cargando datos"); return; }
-            rawData = data || [];
-            refreshUI();
+            if(!error) { rawData = data || []; refreshUI(); }
         }
 
         function refreshUI() {
+            if(!calendar) return;
             calendar.removeAllEvents();
-            const events = rawData.map(d => ({
-                id: d.id,
-                title: d.empleado === 'FESTIVO' ? 'FESTIVO' : d.empleado.split(' ')[0],
-                start: d.fecha_inicio,
+            calendar.addEventSource(rawData.map(d => ({
+                id: d.id, title: d.empleado, start: d.fecha_inicio,
                 backgroundColor: d.empleado === 'FESTIVO' ? '#ef4444' : (employees[d.empleado]?.color || '#94a3b8'),
-                allDay: true
-            }));
-            calendar.addEventSource(events);
+                extendedProps: { emoji: types[d.tipo?.toLowerCase()]?.emoji || '📅', grupo: employees[d.empleado]?.grupo }
+            })));
 
+            const maxDays = yearlyMaxConfig[currentYear] || 25.5;
             const adminBox = document.getElementById('list-admin');
             const tallerBox = document.getElementById('list-taller');
             adminBox.innerHTML = ''; tallerBox.innerHTML = '';
 
             Object.keys(employees).forEach(name => {
-                const totalVaca = rawData
-                    .filter(r => r.empleado === name && r.tipo?.toLowerCase() === 'vacaciones')
-                    .reduce((acc, curr) => acc + parseFloat(curr.dias || 0), 0);
+                const totalVaca = rawData.filter(r => r.empleado === name && r.tipo?.toLowerCase() === 'vacaciones' && r.fecha_inicio.startsWith(currentYear)).reduce((acc, curr) => acc + parseFloat(curr.dias || 0), 0);
                 const isActive = currentUser === name;
-                const percent = Math.min((totalVaca / MAX_VACATIONS) * 100, 100);
-                const color = employees[name].color;
-                const cardHtml = `<div onclick="selectUser('${name}')" class="p-3 rounded-xl cursor-pointer transition-all border-2 mb-1.5 ${isActive ? 'bg-blue-50 border-blue-400 shadow-md ring-2 ring-blue-50' : 'bg-white border-transparent hover:border-slate-200 hover:shadow-sm'}"><div class="flex justify-between text-[11px] font-black mb-1.5"><span class="truncate pr-2 ${isActive ? 'text-blue-900' : 'text-slate-700'}">${name}</span><span class="${totalVaca > MAX_VACATIONS ? 'text-red-500 bg-red-50' : 'text-slate-500 bg-slate-100'} px-2 py-0.5 rounded-full font-bold">${totalVaca.toFixed(1)} / ${MAX_VACATIONS}</span></div><div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden"><div class="h-full transition-all duration-700 ease-out rounded-full" style="width: ${percent}%; background-color: ${color}; box-shadow: 0 0 8px ${color}44"></div></div></div>`;
-                if(employees[name].grupo === 'admin') adminBox.innerHTML += cardHtml; else tallerBox.innerHTML += cardHtml;
+                
+                const card = document.createElement('div');
+                card.className = `user-card p-4 rounded-2xl cursor-pointer border-2 ${isActive ? 'user-card-active' : 'bg-white border-slate-50'}`;
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'card-close-btn';
+                closeBtn.innerHTML = '✕';
+                closeBtn.onclick = (e) => { e.stopPropagation(); clearUserSelection(); };
+
+                card.onclick = () => { if (currentUser !== name) selectUser(name); };
+                card.appendChild(closeBtn);
+                
+                const content = document.createElement('div');
+                content.innerHTML = `
+                    <div class="flex justify-between items-start mb-2 pr-6">
+                        <span class="font-black text-[11px] italic ${isActive ? 'text-blue-700' : 'text-slate-700'}">${formatName(name)}</span>
+                        <span class="font-bold text-[9px] text-slate-400">${totalVaca.toFixed(1)}/${maxDays}</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                        <div class="h-full rounded-full transition-all" style="width: ${Math.min((totalVaca/maxDays)*100,100)}%; background-color: ${employees[name].color}"></div>
+                    </div>
+                `;
+                card.appendChild(content);
+
+                if(employees[name].grupo === 'admin') adminBox.appendChild(card); else tallerBox.appendChild(card);
             });
         }
 
         async function confirmSave(val) {
-            let start = new Date(selectedInfo.start); const end = new Date(selectedInfo.end); const batch = [];
+            if (!selectedInfo) return;
+            
+            let start = new Date(selectedInfo.startStr);
+            const end = new Date(selectedInfo.endStr);
+            const batch = [];
+            const userGroup = modoFestivos ? 'global' : (employees[currentUser]?.grupo || 'otros');
+            
             while(start < end) {
-                if(modoFestivos || (start.getDay() !== 0 && start.getDay() !== 6)) {
-                    batch.push({ empleado: modoFestivos ? 'FESTIVO' : currentUser, fecha_inicio: start.toISOString().split('T')[0], fecha_fin: start.toISOString().split('T')[0], tipo: selectedType, dias: val });
+                const dayOfWeek = start.getDay();
+                const dStr = start.toISOString().split('T')[0];
+                
+                if(modoFestivos || (dayOfWeek !== 0 && dayOfWeek !== 6)) {
+                    if (!modoFestivos) {
+                        const yaTieneRegistro = rawData.some(r => r.fecha_inicio === dStr && r.empleado === currentUser);
+                        if (yaTieneRegistro) { start.setDate(start.getDate() + 1); continue; }
+                        
+                        const alguienDelMismoGrupoFuera = rawData.some(r => 
+                            r.fecha_inicio === dStr && 
+                            r.empleado !== 'FESTIVO' &&
+                            employees[r.empleado]?.grupo === userGroup
+                        );
+                        
+                        if (alguienDelMismoGrupoFuera) {
+                            const groupLabel = userGroup === 'admin' ? 'Administración' : 'Taller';
+                            showToast(`🚫 Restricción: ya hay alguien de ${groupLabel} fuera el día ${dStr}.`);
+                            start.setDate(start.getDate() + 1);
+                            continue; 
+                        }
+                    }
+                    batch.push({ 
+                        empleado: modoFestivos ? 'FESTIVO' : currentUser, 
+                        fecha_inicio: dStr, 
+                        fecha_fin: dStr, 
+                        tipo: selectedType, 
+                        dias: val 
+                    });
                 }
                 start.setDate(start.getDate() + 1);
             }
-            if(batch.length > 0) {
+
+            if(batch.length) {
                 const { error } = await supabaseClient.from(TABLE_NAME).insert(batch);
-                if(!error) { await loadData(); showToast(`✅ Registrado correctamente`); }
-            } else showToast("⚠️ No se puede registrar en fin de semana");
+                if(!error) { 
+                    await loadData(); 
+                    showToast(`✅ Guardado con éxito`); 
+                } else {
+                    showToast("❌ Error al guardar en base de datos");
+                }
+            }
             closeModal();
+            if(calendar) calendar.unselect();
         }
 
         async function deleteEntry(id) {
             const { error } = await supabaseClient.from(TABLE_NAME).delete().eq('id', id);
-            if(!error) { await loadData(); showToast("🗑️ Registro eliminado"); }
+            if(!error) { await loadData(); showToast("🗑️ Registro borrado"); }
         }
 
-        function selectUser(n) { currentUser = n; modoFestivos = false; document.getElementById('currentUserTitle').innerText = n; document.getElementById('btnAnalysis').classList.remove('hidden'); refreshUI(); }
-        function toggleModoFestivos() { modoFestivos = true; currentUser = null; document.getElementById('currentUserTitle').innerText = "FESTIVOS"; document.getElementById('btnAnalysis').classList.add('hidden'); refreshUI(); }
-        function selectType(t) { selectedType = t; document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('type-btn-active')); document.getElementById('btn-'+t).classList.add('type-btn-active'); document.getElementById('confirmActions').classList.remove('hidden'); }
-        function resetModal() { selectedType = null; document.getElementById('confirmActions').classList.add('hidden'); document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('type-btn-active')); }
-        function closeModal() { document.getElementById('modal').style.display = 'none'; calendar.unselect(); }
+        function selectUser(n) { currentUser = n; modoFestivos = false; document.getElementById('currentUserTitle').innerText = formatName(n); document.getElementById('btnAnalysis').classList.remove('hidden'); document.getElementById('clearUserBtn').classList.remove('hidden'); refreshUI(); }
+        
+        function clearUserSelection() { currentUser = null; modoFestivos = false; document.getElementById('currentUserTitle').innerText = "Sin Selección"; document.getElementById('btnAnalysis').classList.add('hidden'); document.getElementById('clearUserBtn').classList.add('hidden'); refreshUI(); }
+
+        function toggleModoFestivos() { modoFestivos = true; currentUser = null; document.getElementById('currentUserTitle').innerText = "FESTIVOS"; document.getElementById('clearUserBtn').classList.remove('hidden'); refreshUI(); }
+
+        function selectType(t) { selectedType = t; document.getElementById('confirmActions').classList.remove('hidden'); }
+        function resetModal() { selectedType = null; document.getElementById('confirmActions').classList.add('hidden'); }
+        
+        function closeModal() { 
+            document.getElementById('modal').style.display = 'none'; 
+            selectedInfo = null;
+        }
+
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-        function navYear(v) { currentYear += v; document.getElementById('displayYear').innerText = currentYear; calendar.gotoDate(`${currentYear}-01-01`); loadData(); }
+        function navYear(v) { currentYear += v; document.getElementById('displayYear').innerText = currentYear; calendar.gotoDate(`${currentYear}-01-01`); refreshUI(); }
 
         function openAnalysis() {
-            if(!currentUser) return; document.getElementById('modalAnalysis').style.display = 'flex'; document.getElementById('analysisUser').innerText = currentUser;
-            const categoryKeys = ['vacaciones', 'baja', 'curso', 'otros'];
-            const stats = categoryKeys.map(t => rawData.filter(r => r.empleado === currentUser && r.tipo?.toLowerCase() === t).reduce((a,c) => a + parseFloat(c.dias || 0), 0));
-            const ctx = document.getElementById('analysisChart').getContext('2d');
+            document.getElementById('modalAnalysis').style.display = 'flex';
+            const maxDays = yearlyMaxConfig[currentYear] || 25.5;
+            const stats = ['vacaciones', 'baja', 'curso', 'otros'].map(t => rawData.filter(r => r.empleado === currentUser && r.tipo?.toLowerCase() === t && r.fecha_inicio.startsWith(currentYear)).reduce((a,c) => a + parseFloat(c.dias || 0), 0));
             if(chart) chart.destroy();
-            chart = new Chart(ctx, { type: 'bar', data: { labels: categoryKeys.map(k => types[k].label), datasets: [{ data: stats, backgroundColor: categoryKeys.map(k => types[k].color + 'CC'), borderColor: categoryKeys.map(k => types[k].color), borderWidth: 2, borderRadius: 12, barThickness: 50 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: Math.max(MAX_VACATIONS, ...stats) + 2 }, x: { grid: { display: false } } } } });
-            const container = document.getElementById('analysisStats'); container.innerHTML = '';
-            categoryKeys.forEach((k, i) => { container.innerHTML += `<div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl"><p class="text-[10px] font-black text-slate-400 uppercase mb-1">${types[k].emoji} ${types[k].label}</p><p class="text-xl font-black text-slate-900">${stats[i].toFixed(1)} <span class="text-[10px] text-slate-400">DÍAS</span></p></div>`; });
-            document.getElementById('vacaSum').innerText = stats[0].toFixed(1); document.getElementById('restSum').innerText = (MAX_VACATIONS - stats[0]).toFixed(1);
+            chart = new Chart(document.getElementById('analysisChart'), { 
+                type: 'bar', 
+                data: { labels: ['Vacaciones', 'Baja', 'Curso', 'Otros'], datasets: [{ data: stats, backgroundColor: ['#3b82f6', '#f43f5e', '#8b5cf6', '#64748b'] }] }, 
+                options: { plugins: { legend: false }, scales: { y: { beginAtZero: true } } } 
+            });
+            document.getElementById('vacaSum').innerText = stats[0].toFixed(1); 
+            document.getElementById('restSum').innerText = (maxDays - stats[0]).toFixed(1);
         }
+
         function closeAnalysis() { document.getElementById('modalAnalysis').style.display = 'none'; }
+        
+        function openSettings() { 
+            document.getElementById('modalSettings').style.display = 'flex'; 
+            document.getElementById('inputMaxDays').value = yearlyMaxConfig[currentYear] || 25.5; 
+            renderSettingsEmployees(); 
+        }
+
+        function closeSettings() { document.getElementById('modalSettings').style.display = 'none'; }
+        
+        function updateMaxDays() { 
+            yearlyMaxConfig[currentYear] = parseFloat(document.getElementById('inputMaxDays').value); 
+            localStorage.setItem('yearlyMaxConfig', JSON.stringify(yearlyMaxConfig)); 
+            showToast("⚙️ Días máximos actualizados"); 
+            refreshUI(); 
+        }
+        
+        function renderSettingsEmployees() {
+            const list = document.getElementById('settingsEmployeeList'); 
+            list.innerHTML = '';
+            
+            Object.keys(employees).forEach(n => {
+                const row = document.createElement('div'); 
+                row.className = "flex justify-between items-center p-3 bg-slate-50 rounded-xl mb-2 border border-slate-100";
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full" style="background-color: ${employees[n].color}"></div>
+                        <div>
+                            <span class="font-bold text-sm text-slate-800">${formatName(n)}</span> 
+                            <span class="text-[9px] uppercase font-black text-slate-400 block tracking-widest">${employees[n].grupo}</span>
+                        </div>
+                    </div>
+                    <button onclick="removeEmp('${n}')" class="text-rose-500 font-black text-[10px] uppercase bg-rose-50 px-3 py-2 rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm">Quitar</button>
+                `;
+                list.appendChild(row);
+            });
+        }
+
+        function addEmployee() {
+            const n = document.getElementById('newEmpName').value.trim();
+            if(n) { 
+                employees[n] = { 
+                    color: document.getElementById('newEmpColor').value, 
+                    grupo: document.getElementById('newEmpGroup').value 
+                }; 
+                localStorage.setItem('employees', JSON.stringify(employees)); 
+                document.getElementById('newEmpName').value = '';
+                renderSettingsEmployees(); 
+                refreshUI(); 
+                showToast(`👤 ${n} añadido`);
+            } else {
+                showToast("⚠️ Introduce un nombre");
+            }
+        }
+
+        function removeEmp(nombre) {
+            delete employees[nombre];
+            localStorage.setItem('employees', JSON.stringify(employees));
+            if (currentUser === nombre) {
+                clearUserSelection();
+            }
+            renderSettingsEmployees(); 
+            refreshUI(); 
+            showToast(`🗑️ ${nombre} eliminado`);
+        }
+
+        function showToast(m) { 
+            const t = document.getElementById('toast'); 
+            document.getElementById('toastMsg').innerText = m; 
+            t.classList.add('show'); 
+            setTimeout(() => t.classList.remove('show'), 4000); 
+        }
+
+        if(activeUserSession) applySession();
     </script>
 </body>
 </html>
